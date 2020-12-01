@@ -10,16 +10,12 @@ if [[ "${BUILDKITE_ENABLE_INSTANCE_STORAGE:-false}" != "true" ]] ; then
   exit 0
 fi
 
+# Install nvme-cli to list NVMe SSD instance store volumes
+yum -y -d0 install nvme-cli
+
 devicemount=/ephemeral
 logicalname=/dev/md0
-candidates=( '/dev/nvme1n1' )
-devices=()
-
-for candidate in "${candidates[@]}" ; do
-  if [[ -b $candidate ]] ; then
-    devices+=("$candidate")
-  fi
-done
+devices=($(nvme list | grep "Amazon EC2 NVMe Instance Storage"| cut -f1 -d' '))
 
 if [[ "${#devices[@]}" -gt 0 ]] ; then
   mkdir -p "$devicemount"
@@ -35,13 +31,13 @@ if [[ "${#devices[@]}" -eq 1 ]] ; then
   fi
 
 elif [[ "${#devices[@]}" -gt 1 ]] ; then
-  yes | mdadm \
+  mdadm \
     --create "$logicalname" \
     --level=0 \
     -c256 \
     --raid-devices="${#devices[@]}" "${devices[@]}"
 
-  echo \'DEVICE "${devices[*]}"\' > /etc/mdadm.conf
+  echo "DEVICE ${devices[*]}" > /etc/mdadm.conf
 
   mdadm --detail --scan >> /etc/mdadm.conf
   blockdev --setra 65536 "$logicalname"
