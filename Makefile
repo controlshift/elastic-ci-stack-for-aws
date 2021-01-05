@@ -76,11 +76,8 @@ build/linux-amd64-ami.txt: packer-linux-amd64.output env-AWS_REGION
 	grep -Eo "$(AWS_REGION): (ami-.+)" $< | cut -d' ' -f2 | xargs echo -n > $@
 
 # Build linux packer image
-<<<<<<< HEAD
-packer-linux.output: $(PACKER_LINUX_FILES) build/s3secrets-helper-linux-amd64
-=======
 packer-linux-amd64.output: $(PACKER_LINUX_FILES) build/s3secrets-helper-linux-amd64
->>>>>>> upstream/master
+
 	docker run \
 		-e AWS_DEFAULT_REGION  \
 		-e AWS_PROFILE \
