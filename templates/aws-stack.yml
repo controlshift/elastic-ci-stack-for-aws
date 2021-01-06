@@ -272,7 +272,7 @@ Parameters:
   RootVolumeType:
     Description: Type of root volume to use
     Type: String
-    Default: "gp2"
+    Default: "gp3"
 
   SecurityGroupId:
     Type: String
@@ -520,6 +520,7 @@ Conditions:
         - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "a1" ]
         - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "c6g" ]
         - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "c6gd" ]
+        - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "c6gn" ]
         - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "r6g" ]
         - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "r6gd" ]
 
