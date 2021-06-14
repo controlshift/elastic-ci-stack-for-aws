@@ -110,9 +110,11 @@ Parameters:
     Default: ""
 
   BuildkiteAgentTokenParameterStorePath:
-    Description: AWS SSM path to the Buildkite agent registration token (this takes precedence over BuildkiteAgentToken)
+    Description: AWS SSM path to the Buildkite agent registration token (this takes precedence over BuildkiteAgentToken). Expects a leading slash ('/').
     Type: String
     Default: ""
+    AllowedPattern: "^$|^/[a-zA-Z0-9_.\\-/]+$"
+    ConstraintDescription: "Expects a leading forward slash"
 
   BuildkiteAgentTokenParameterStoreKMSKey:
     Description: AWS KMS key ID used to encrypt the SSM parameter (if encrypted)
@@ -308,6 +310,11 @@ Parameters:
     Description: Optional - A name for the IAM Role attached to the Instance Profile
     Default: ""
 
+  InstanceRolePermissionsBoundaryARN:
+    Type: String
+    Description: The ARN of the policy used to set the permissions boundary for the role.
+    Default: ""
+
   InstanceOperatingSystem:
     Type: String
     Description: The operating system to run on the instances
@@ -448,10 +455,15 @@ Conditions:
       !Equals [ !Ref SecurityGroupId, "" ]
 
     CreateSecretsBucket:
-      !Equals [ !Ref SecretsBucket, "" ]
+      !And
+         - !Equals [ !Ref EnableSecretsPlugin, "true"]
+         - !Equals [ !Ref SecretsBucket, "" ]
 
     SetInstanceRoleName:
       !Not [ !Equals [ !Ref InstanceRoleName, "" ] ]
+
+    SetInstanceRolePermissionsBoundaryARN:
+      !Not [ !Equals [ !Ref InstanceRolePermissionsBoundaryARN, "" ] ]
 
     UseSpecifiedSecretsBucket:
       !Not [ !Equals [ !Ref SecretsBucket, "" ] ]
@@ -664,6 +676,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !If [ SetInstanceRoleName, !Ref InstanceRoleName, !Sub "${AWS::StackName}-Role" ]
+      PermissionsBoundary: !If [ SetInstanceRolePermissionsBoundaryARN, !Ref InstanceRolePermissionsBoundaryARN, !Ref "AWS::NoValue" ]
       ManagedPolicyArns: !If
           - HasManagedPolicies
           # Support multiple policies to attach by merging the values together and splitting on ','
@@ -735,12 +748,6 @@ Resources:
               - logs:PutLogEvents
               - logs:DescribeLogStreams
             Resource: "*"
-          - Effect: Allow
-            Action:
-              - sqs:*
-              - sns:Unsubscribe
-              - sns:Subscribe
-            Resource: "*"
       Roles:
         - !Ref IAMRole
 
@@ -783,7 +790,6 @@ Resources:
           - Effect: Allow
             Action:
               - s3:Get*
-              - s3:Get
               - s3:List*
             Resource:
               - !Sub "arn:aws:s3:::${ManagedSecretsBucket}/*"
@@ -801,7 +807,6 @@ Resources:
           - Effect: Allow
             Action:
               - s3:Get*
-              - s3:Get
               - s3:List*
             Resource:
               - !Sub "arn:aws:s3:::${SecretsBucket}/*"
@@ -1032,6 +1037,7 @@ Resources:
   AsgProcessSuspenderRole:
     Type: AWS::IAM::Role
     Properties:
+      PermissionsBoundary: !If [ SetInstanceRolePermissionsBoundaryARN, !Ref InstanceRolePermissionsBoundaryARN, !Ref "AWS::NoValue" ]
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -1108,6 +1114,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: HasVariableSize
     Properties:
+      PermissionsBoundary: !If [ SetInstanceRolePermissionsBoundaryARN, !Ref InstanceRolePermissionsBoundaryARN, !Ref "AWS::NoValue" ]
       Path: "/"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -1176,7 +1183,7 @@ Resources:
     Properties:
       Code:
         S3Bucket: { 'Fn::FindInMap': [LambdaBucket, !Ref 'AWS::Region', 'Bucket'] }
-        S3Key: "buildkite-agent-scaler/v1.0.2/handler.zip"
+        S3Key: "buildkite-agent-scaler/v1.1.1/handler.zip"
       Role: !GetAtt AutoscalingLambdaExecutionRole.Arn
       Timeout: 120
       Handler: handler
