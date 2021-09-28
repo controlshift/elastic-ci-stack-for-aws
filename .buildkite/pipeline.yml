@@ -16,64 +16,16 @@ steps:
         run: unit-tests
         config: docker-compose.unit-tests.yml
 
-  - id: "s3secrets-helper-linux-amd64"
-    name: ":golang: :linux: s3secrets-helper-linux-amd64"
+  - id: "deploy-service-role-stack"
+    name: ":aws-iam: :cloudformation:"
     agents:
       queue: "${BUILDKITE_AGENT_META_DATA_QUEUE}"
-    plugins:
-      docker#v3.7.0:
-        image: "golang:1.15"
-        mount-checkout: false
-        volumes:
-          - "./build:/build:rw"
-          - "./plugins/secrets/s3secrets-helper:/s3secrets-helper:ro"
-        workdir: /s3secrets-helper
-        environment:
-          - "GOOS=linux"
-          - "GOARCH=amd64"
-        command: ["go", "build", "-o", "/build/s3secrets-helper-linux-amd64"]
-    artifact_paths:
-      - build/s3secrets-helper-linux-amd64
+    command: .buildkite/steps/deploy-service-role-stack.sh
+    depends_on:
+      - "lint"
+      - "bats-tests"
 
-  - id: "s3secrets-helper-linux-arm64"
-    name: ":golang: :linux: s3secrets-helper-linux-arm64"
-    agents:
-      queue: "${BUILDKITE_AGENT_META_DATA_QUEUE}"
-    plugins:
-      docker#v3.7.0:
-        image: "golang:1.15"
-        mount-checkout: false
-        volumes:
-          - "./build:/build:rw"
-          - "./plugins/secrets/s3secrets-helper:/s3secrets-helper:ro"
-        workdir: /s3secrets-helper
-        environment:
-          - "GOOS=linux"
-          - "GOARCH=arm64"
-        command: ["go", "build", "-o", "/build/s3secrets-helper-linux-arm64"]
-    artifact_paths:
-      - build/s3secrets-helper-linux-arm64
-
-  - id: "s3secrets-helper-windows-amd64"
-    name: ":golang: :windows: s3secrets-helper-windows-amd64.exe"
-    agents:
-      queue: "${BUILDKITE_AGENT_META_DATA_QUEUE}"
-    plugins:
-      docker#v3.7.0:
-        image: "golang:1.15"
-        mount-checkout: false
-        volumes:
-          - "./build:/build:rw"
-          - "./plugins/secrets/s3secrets-helper:/s3secrets-helper:ro"
-        workdir: /s3secrets-helper
-        environment:
-          - "GOOS=windows"
-          - "GOARCH=amd64"
-        command: ["go", "build", "-o", "/build/s3secrets-helper-windows-amd64.exe"]
-    artifact_paths:
-      - build/s3secrets-helper-windows-amd64.exe
-
-  - id: "packer-windows"
+  - id: "packer-windows-amd64"
     name: ":packer: :windows:"
     command: .buildkite/steps/packer.sh windows
     timeout_in_minutes: 60
@@ -83,24 +35,34 @@ steps:
     depends_on:
       - "lint"
       - "bats-tests"
-      - "s3secrets-helper-windows-amd64"
 
-  - id: "launch-windows"
-    name: ":cloudformation: :windows: Launch"
-    command: .buildkite/steps/launch.sh windows
+  - id: "launch-windows-amd64"
+    name: ":cloudformation: :windows: AMD64 Launch"
+    command: .buildkite/steps/launch.sh windows amd64
     agents:
       queue: "${BUILDKITE_AGENT_META_DATA_QUEUE}"
     artifact_paths: "build/aws-stack.yml"
-    depends_on: "packer-windows"
+    depends_on:
+      - "packer-windows-amd64"
+      - "deploy-service-role-stack"
 
-  - id: "test-windows"
-    name: ":cloudformation: :windows: Test"
+  - id: "test-windows-amd64"
+    name: ":cloudformation: :windows: AMD64 Test"
     command: "docker info"
     timeout_in_minutes: 5
     agents:
       stack: "buildkite-aws-stack-test-windows-amd64-${BUILDKITE_BUILD_NUMBER}"
       queue: "testqueue-windows-amd64-${BUILDKITE_BUILD_NUMBER}"
-    depends_on: "launch-windows"
+    depends_on:
+      - "launch-windows-amd64"
+
+  - id: "delete-windows-amd64"
+    name: ":cloudformation: :windows: AMD64 Delete"
+    command: .buildkite/steps/delete.sh windows amd64
+    agents:
+      queue: "${BUILDKITE_AGENT_META_DATA_QUEUE}"
+    depends_on:
+      - "test-windows-amd64"
 
   - id: "packer-linux-amd64"
     name: ":packer: :linux: AMD64"
@@ -112,7 +74,6 @@ steps:
     depends_on:
       - "lint"
       - "bats-tests"
-      - "s3secrets-helper-linux-amd64"
 
   - id: "launch-linux-amd64"
     name: ":cloudformation: :linux: AMD64 Launch"
@@ -120,7 +81,9 @@ steps:
     agents:
       queue: "${BUILDKITE_AGENT_META_DATA_QUEUE}"
     artifact_paths: "build/aws-stack.yml"
-    depends_on: "packer-linux-amd64"
+    depends_on:
+      - "packer-linux-amd64"
+      - "deploy-service-role-stack"
 
   - id: "test-linux-amd64"
     name: ":cloudformation: :linux: AMD64 Test"
@@ -129,7 +92,16 @@ steps:
     agents:
       stack: "buildkite-aws-stack-test-linux-amd64-${BUILDKITE_BUILD_NUMBER}"
       queue: "testqueue-linux-amd64-${BUILDKITE_BUILD_NUMBER}"
-    depends_on: "launch-linux-amd64"
+    depends_on:
+      - "launch-linux-amd64"
+
+  - id: "delete-linux-amd64"
+    name: ":cloudformation: :linux: AMD64 Delete"
+    command: .buildkite/steps/delete.sh linux amd64
+    agents:
+      queue: "${BUILDKITE_AGENT_META_DATA_QUEUE}"
+    depends_on:
+      - "test-linux-amd64"
 
   - id: "packer-linux-arm64"
     name: ":packer: :linux: ARM64"
@@ -141,7 +113,6 @@ steps:
     depends_on:
       - "lint"
       - "bats-tests"
-      - "s3secrets-helper-linux-arm64"
 
   - id: "launch-linux-arm64"
     name: ":cloudformation: :linux: ARM64 Launch"
@@ -149,7 +120,9 @@ steps:
     agents:
       queue: "${BUILDKITE_AGENT_META_DATA_QUEUE}"
     artifact_paths: "build/aws-stack.yml"
-    depends_on: "packer-linux-arm64"
+    depends_on:
+      - "packer-linux-arm64"
+      - "deploy-service-role-stack"
 
   - id: "test-linux-arm64"
     name: ":cloudformation: :linux: ARM64 Test"
@@ -158,7 +131,26 @@ steps:
     agents:
       stack: "buildkite-aws-stack-test-linux-arm64-${BUILDKITE_BUILD_NUMBER}"
       queue: "testqueue-linux-arm64-${BUILDKITE_BUILD_NUMBER}"
-    depends_on: "launch-linux-arm64"
+    depends_on: 
+      - "launch-linux-arm64"
+
+  - id: "delete-linux-arm64"
+    name: ":cloudformation: :linux: ARM64 Delete"
+    command: .buildkite/steps/delete.sh linux arm64
+    agents:
+      queue: "${BUILDKITE_AGENT_META_DATA_QUEUE}"
+    depends_on:
+      - "test-linux-arm64"
+
+  - id: "delete-service-role-stack"
+    name: ":aws-iam: :cloudformation: Delete"
+    command: .buildkite/steps/delete-service-role-stack.sh
+    agents:
+      queue: "${BUILDKITE_AGENT_META_DATA_QUEUE}"
+    depends_on:
+      - "delete-windows-amd64"
+      - "delete-linux-amd64"
+      - "delete-linux-arm64"
 
   - id: "copy-ami"
     name: ":cloudformation: 🚚 🌎"
@@ -169,7 +161,7 @@ steps:
     depends_on:
       - "test-linux-amd64"
       - "test-linux-arm64"
-      - "test-windows"
+      - "test-windows-amd64"
 
   - id: "publish"
     name: ":cloudformation: :rocket:"
@@ -178,6 +170,7 @@ steps:
       queue: "${BUILDKITE_AGENT_META_DATA_QUEUE}"
     concurrency_group: "aws-stack-publish"
     concurrency: 1
+    concurrency_method: eager
     artifact_paths: "build/*.yml"
     depends_on: "copy-ami"
 
