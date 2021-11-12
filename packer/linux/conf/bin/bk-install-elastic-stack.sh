@@ -233,6 +233,14 @@ systemctl start "buildkite-agent"
 	--resource "AgentAutoScaleGroup" \
 	--exit-code 0 || (
 		# This will fail if the stack has already completed, for instance if there is a min size
-		# of 1 and this is the 2nd instance. This is ok, so we just ignore the erro
+		# of 1 and this is the 2nd instance. This is ok, so we just ignore the error
 		echo "Signal failed"
 	)
+
+echo "warming docker images..."
+
+# allow failures while warming the images we use.
+docker pull circleci/postgres:12-postgis-ram || true
+docker pull ruby:2.7.4-alpine || true
+docker pull docker.elastic.co/elasticsearch/elasticsearch:7.9.3 || true
+docker pull circleci/redis:6-alpine || true
