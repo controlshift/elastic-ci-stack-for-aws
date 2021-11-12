@@ -384,5 +384,13 @@ cfn-signal \
   --resource "AgentAutoScaleGroup" \
   --exit-code 0 || echo Signal failed
 
+echo "warming docker images..."
+
+# allow failures while warming the images we use.
+docker pull circleci/postgres:12-postgis-ram || true
+docker pull ruby:2.7.4-alpine || true
+docker pull docker.elastic.co/elasticsearch/elasticsearch:7.9.3 || true
+docker pull circleci/redis:6-alpine || true
+
 # Record bootstrap as complete (this should be the last step in this file)
 echo "Completed" >"$STATUS_FILE"
