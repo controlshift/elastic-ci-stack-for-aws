@@ -386,11 +386,18 @@ cfn-signal \
 
 echo "warming docker images..."
 
-# allow failures while warming the images we use.
-docker pull circleci/postgres:12-postgis-ram || true
-docker pull ruby:2.7.4-alpine || true
-docker pull docker.elastic.co/elasticsearch/elasticsearch:7.9.3 || true
-docker pull circleci/redis:6-alpine || true
+function docker_pull_with_retry() {
+  docker_image=$1
+
+  for i in {1..5}; do
+    docker pull "$docker_image" && break || sleep 5
+  done
+}
+
+docker_pull_with_retry 'circleci/postgres:12-postgis-ram'
+docker_pull_with_retry 'ruby:2.7.4-alpine'
+docker_pull_with_retry 'docker.elastic.co/elasticsearch/elasticsearch:7.9.3'
+docker_pull_with_retry 'circleci/redis:6-alpine'
 
 # Record bootstrap as complete (this should be the last step in this file)
 echo "Completed" >"$STATUS_FILE"
