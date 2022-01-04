@@ -24,3 +24,11 @@ sudo aws configure set s3.signature_version s3v4
 
 echo "Installing goss for system validation..."
 curl -fsSL https://goss.rocks/install | GOSS_VER=v0.3.6 sudo sh
+
+echo "Installing goreleaser..."
+echo '[goreleaser]
+name=GoReleaser
+baseurl=https://repo.goreleaser.com/yum/
+enabled=1
+gpgcheck=0' | sudo tee /etc/yum.repos.d/goreleaser.repo
+sudo yum -y install goreleaser
