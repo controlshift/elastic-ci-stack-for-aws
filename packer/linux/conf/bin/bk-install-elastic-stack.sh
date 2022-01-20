@@ -248,7 +248,7 @@ function docker_pull_with_retry() {
   done
 }
 
-docker_pull_with_retry 'circleci/postgres:12-postgis-ram'
-docker_pull_with_retry 'ruby:2.7.4-alpine'
-docker_pull_with_retry 'docker.elastic.co/elasticsearch/elasticsearch:7.9.3'
-docker_pull_with_retry 'circleci/redis:6-alpine'
+docker_pull_with_retry 'postgres:13'
+docker_pull_with_retry 'ruby:3.0.3-alpine'
+docker_pull_with_retry 'docker.elastic.co/elasticsearch/elasticsearch:7.16.2'
+docker_pull_with_retry 'redis:6'
