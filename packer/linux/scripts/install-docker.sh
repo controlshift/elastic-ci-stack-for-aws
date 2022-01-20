@@ -1,10 +1,10 @@
 #!/bin/bash
 set -eu -o pipefail
 
-DOCKER_VERSION=20.10.9
+DOCKER_VERSION=20.10.12
 DOCKER_RELEASE="stable"
 DOCKER_COMPOSE_VERSION=1.29.2
-DOCKER_BUILDX_VERSION="0.6.3"
+DOCKER_BUILDX_VERSION="0.7.1"
 MACHINE=$(uname -m)
 
 # This performs a manual install of Docker.

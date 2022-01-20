@@ -65,6 +65,7 @@ Metadata:
         - KeyName
         - SpotPrice
         - SecretsBucket
+        - SecretsBucketRegion
         - ArtifactsBucket
         - AuthorizedUsersUrl
         - BootstrapScriptUrl
@@ -196,6 +197,11 @@ Parameters:
 
   SecretsBucket:
     Description: Optional - Name of an existing S3 bucket containing pipeline secrets (Created if left blank)
+    Type: String
+    Default: ""
+
+  SecretsBucketRegion:
+    Description: Optional - Region for the SecretsBucket. If blank the bucket's region is dynamically discovered.
     Type: String
     Default: ""
 
@@ -576,15 +582,16 @@ Conditions:
 
     UsingArmInstances:
       !Or
-        - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "m6g" ]
-        - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "m6gd" ]
-        - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "t4g" ]
         - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "a1" ]
         - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "c6g" ]
         - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "c6gd" ]
         - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "c6gn" ]
+        - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "c7g" ]
+        - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "m6g" ]
+        - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "m6gd" ]
         - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "r6g" ]
         - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "r6gd" ]
+        - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceType ] ], "t4g" ]
 
 Mappings:
   ECRManagedPolicy:
@@ -955,6 +962,7 @@ Resources:
                   $Env:BUILDKITE_STACK_VERSION="%v"
                   $Env:BUILDKITE_SCALE_IN_IDLE_PERIOD="${ScaleInIdlePeriod}"
                   $Env:BUILDKITE_SECRETS_BUCKET="${LocalSecretsBucket}"
+                  $Env:BUILDKITE_SECRETS_BUCKET_REGION="${LocalSecretsBucketRegion}"
                   $Env:BUILDKITE_AGENT_TOKEN_PATH="${AgentTokenPath}"
                   $Env:BUILDKITE_AGENTS_PER_INSTANCE="${AgentsPerInstance}"
                   $Env:BUILDKITE_AGENT_TAGS="${BuildkiteAgentTags}"
@@ -978,6 +986,7 @@ Resources:
                   </powershell>
                 - {
                     LocalSecretsBucket: !If [ CreateSecretsBucket, !Ref ManagedSecretsBucket, !Ref SecretsBucket ],
+                    LocalSecretsBucketRegion: !If [ CreateSecretsBucket, !Ref AWS::Region, !Ref SecretsBucketRegion ],
                     AgentTokenPath: !If [ UseCustomerManagedParameterPath, !Ref BuildkiteAgentTokenParameterStorePath, !Ref BuildkiteAgentTokenParameter ],
                   }
               - !Sub
@@ -1001,6 +1010,7 @@ Resources:
                   BUILDKITE_STACK_VERSION="%v" \
                   BUILDKITE_SCALE_IN_IDLE_PERIOD="${ScaleInIdlePeriod}" \
                   BUILDKITE_SECRETS_BUCKET="${LocalSecretsBucket}" \
+                  BUILDKITE_SECRETS_BUCKET_REGION="${LocalSecretsBucketRegion}" \
                   BUILDKITE_AGENT_TOKEN_PATH="${AgentTokenPath}" \
                   BUILDKITE_AGENTS_PER_INSTANCE="${AgentsPerInstance}" \
                   BUILDKITE_AGENT_TAGS="${BuildkiteAgentTags}" \
@@ -1025,6 +1035,7 @@ Resources:
                   --==BOUNDARY==--
                 - {
                     LocalSecretsBucket: !If [ CreateSecretsBucket, !Ref ManagedSecretsBucket, !Ref SecretsBucket ],
+                    LocalSecretsBucketRegion: !If [ CreateSecretsBucket, !Ref AWS::Region, !Ref SecretsBucketRegion ],
                     AgentTokenPath: !If [ UseCustomerManagedParameterPath, !Ref BuildkiteAgentTokenParameterStorePath, !Ref BuildkiteAgentTokenParameter ],
                   }
 
@@ -1163,7 +1174,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172840064832:applications/buildkite-agent-scaler
-        SemanticVersion: '1.1.1'
+        SemanticVersion: '1.1.3'
       Parameters:
         BuildkiteAgentTokenParameter: !If [ UseCustomerManagedParameterPath, !Ref BuildkiteAgentTokenParameterStorePath, !Ref BuildkiteAgentTokenParameter ]
         BuildkiteAgentTokenParameterStoreKMSKey: !If [ UseCustomerManagedKeyForParameterStore, !Ref BuildkiteAgentTokenParameterStoreKMSKey, "" ]
