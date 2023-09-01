@@ -394,9 +394,9 @@ function docker_pull_with_retry() {
   done
 }
 
-docker_pull_with_retry 'postgres:13'
-docker_pull_with_retry 'ruby:3.0.3-alpine'
-docker_pull_with_retry 'docker.elastic.co/elasticsearch/elasticsearch:7.16.2'
+docker_pull_with_retry 'postgres:14'
+docker_pull_with_retry 'ruby:3.2.2-alpine'
+docker_pull_with_retry 'docker.elastic.co/elasticsearch/elasticsearch:7.17.5'
 docker_pull_with_retry 'redis:6'
 
 # Record bootstrap as complete (this should be the last step in this file)
