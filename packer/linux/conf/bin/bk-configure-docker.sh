@@ -100,20 +100,3 @@ systemctl enable docker-gc.timer docker-low-disk-gc.timer
 
 echo Restarting docker daemon...
 systemctl restart docker
-
-# wait for docker to start
-next_wait_time=0
-until docker ps || [ $next_wait_time -eq 5 ]; do
-	sleep $(( next_wait_time++ ))
-done
-
-if ! docker ps ; then
-  echo "Failed to contact docker"
-  exit 1
-fi
-
-# allow failures while warming the images we use.
-docker pull circleci/postgres:12-postgis-ram || true
-docker pull ruby:2.7.4-alpine || true
-docker pull docker.elastic.co/elasticsearch/elasticsearch:7.9.3 || true
-docker pull circleci/redis:6-alpine || true
