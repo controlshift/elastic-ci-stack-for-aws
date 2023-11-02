@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [v6.10.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.10.0) (2023-11-02)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.9.0...v6.10.0)
+
+### Added
+- Enable optionally changing EC2 Instance Types used for AMI Creation [#1252](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1252) (@tomowatt)
+- Add support for graviton3 with local nvme [#1253](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1253) (@joemiller)
+
+### Fixed
+- Build fix-perms in Makefile [#1254](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1254) (@DrJosh9000)
+
+### Changed
+- Bump agent version to v3.58.0 [#1256](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1256) (@DrJosh9000)
+
+### Internal
+- Mention docker 20.10.25 to 24.0.5 upgrade in v6.8.0 changelog [#1249](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1249) (@yob)
+
 ## [v6.9.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.9.0) (2023-10-23)
 [Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.8.0...v6.9.0)
 
@@ -28,6 +44,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Bump docker-compose to v2.22.0 [#1234](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1234) (@jkburges)
 - Improve logging for startup scripts on linux [#1230](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1230) (@triarius)
 - Wrap quotes around AWS::StackName [#1238](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1238) (@n-tucker)
+- Docker upgraded from from 20.10.25 to 24.0.5 [Amazon Linux 2023 changelog](https://docs.aws.amazon.com/linux/al2023/release-notes/relnotes-2023.2.20230920.html)
 
 ### Fixed
 - Fix rsyslog was missing from base AMI [#1240](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1240) (@peter-svensson)
