@@ -4,6 +4,70 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [v6.16.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.16.0) (2024-02-15)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.15.0...v6.16.0)
+
+### Changed
+- Bump agent version to v3.63.0 [#1292](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1292) (@DrJosh9000)
+
+## [v6.15.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.15.0) (2024-02-02)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.14.0...v6.15.0)
+
+### Security
+- For linux, the Base AMI has been updated to [Amazon Linux 2023.3.20240131](https://docs.aws.amazon.com/linux/al2023/release-notes/relnotes-2023.3.20240131.html) which fixes [CVE-2024-21626](https://nvd.nist.gov/vuln/detail/CVE-2024-21626).
+
+### Added
+- Support configurable log retention for scaler with the `LogRetentionDays` parameter. [#1278](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1278) (@grahamc)
+
+### Fixed
+- Fix path for cfn-env on windows elastic stack did not always work [#1286](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1286) (@triarius)
+
+## [v6.14.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.14.0) (2024-01-30)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.13.0...v6.14.0)
+
+### Added
+- A parameter, `RootVolumeThroughput`, to be set for gp3 root volumes [#1282](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1282) (@cmanou)
+
+### Changed
+- Allow specifying IOPS for gp3 [#1283](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1283) (@bradleyayers)
+
+### Dependencies
+- Bump buildx to v0.12.1 and docker-compose to v2.24.4 [#1284](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1284) (@triarius)
+
+## [v6.13.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.13.0) (2024-01-23)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.12.0...v6.13.0)
+
+### Dependencies
+- Bump agent version to v3.62.0 [#1280](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1280) (@tessereth)
+
+## [v6.12.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.12.0) (2023-12-14)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.11.0...v6.12.0)
+
+### Added
+- Add MountTmpfsAtTmp parameter [#1274](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1274) (@DrJosh9000)
+
+### Dependencies
+- Bump buildkite-agent to v3.61.0 [#1275](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1275) (@DrJosh9000)
+
+## [v6.11.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.11.0) (2023-12-07)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.10.0...v6.11.0)
+
+### Added
+- BuildkiteAgentCancelGracePeriod option to linux stack [#1258](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1258) (@njgrisafi)
+- RootVolumeIops parameter to allow io1 and io2 RootVolumeTypes [#1269](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1269) (@triarius)
+
+### Fixed
+- Allow hyphens in all `InstanceTypes` values [#1266](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1266) (@pH14)
+
+### Dependencies
+- Bump agent to v3.60.1 [#1260](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1260) (@DrJosh9000) [#1265](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1265) (@moskyb) [#1271](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1271) (@triarius)
+- Bump buildx to v0.12.0 [#1262](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1262) (@triarius)
+- Bump docker-compose to v2.23.3 [#1272](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1272) (@triarius)
+
+### Internal
+- Launch test elastic stacks using templates from S3 [#1267](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1267) (@moskyb)
+- Ensure tag builds have the tag [#1259](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1259) (@triarius)
+
 ## [v6.10.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.10.0) (2023-11-02)
 [Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.9.0...v6.10.0)
 
