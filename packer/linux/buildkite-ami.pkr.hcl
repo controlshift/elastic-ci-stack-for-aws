@@ -56,7 +56,12 @@ source "amazon-ebs" "elastic-ci-stack-ami" {
   source_ami                                = data.amazon-ami.al2023.id
   ssh_username                              = "ec2-user"
   temporary_security_group_source_public_ip = true
-  encrypt_boot    = true
+  encrypt_boot                              = true
+
+  launch_block_device_mappings {
+    device_name = "/dev/xvda"
+    volume_size   = 30
+  }
 
   run_tags = {
     Name = "Packer Builder" // marks resources for deletion in cleanup.sh
