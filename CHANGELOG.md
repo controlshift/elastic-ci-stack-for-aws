@@ -4,6 +4,457 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [v6.30.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.30.0) (2024-10-30)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.29.1...v6.30.0)
+
+### Added
+- Add support for c8g instances. [#1392](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1392) (@toothbrush)
+- Restore SSM Session Manager Plugin [#1389](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1389) (@ellsclytn)
+
+### Changed
+- Bump agent to v3.84.0 [#1393](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1393) (@DrJosh9000)
+
+### Internal
+- fix: update goss to be more explicit with platform in docker tests [#1390](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1390) (@wolfeidau)
+
+<details>
+<summary><h3>Agent Changelog</h3></summary>
+
+## [v3.84.0](https://github.com/buildkite/agent/tree/v3.84.0) (2024-10-28)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.83.1...v3.84.0)
+
+### Added
+- Add command for canceling a running a build [#2958](https://github.com/buildkite/agent/pull/2958) (@dannymidnight)
+- Add tini-static to alpine images [#3054](https://github.com/buildkite/agent/pull/3054) (@DrJosh9000)
+
+### Fixed
+- Implement several documentation improvements to the Agent (for the Buildkite Docs). [#3043](https://github.com/buildkite/agent/pull/3043) (@gilesgas)
+- Allow token to be empty if graphql-token is provided [#3051](https://github.com/buildkite/agent/pull/3051) (@jordandcarter)
+- Fix multiline secret redaction when output with \r\n [#3050](https://github.com/buildkite/agent/pull/3050) (@DrJosh9000)
+- k8s exec: Perform liveness check of clients [#3045](https://github.com/buildkite/agent/pull/3045) (@DrJosh9000)
+- Fix request headers for multipart [#3042](https://github.com/buildkite/agent/pull/3042) (@DrJosh9000)
+
+### Internal
+- install.sh tidyups [#3032](https://github.com/buildkite/agent/pull/3032) (@DrJosh9000)
+- Parallel container image uploads [#3035](https://github.com/buildkite/agent/pull/3035) (@DrJosh9000)
+- Various dependency bumps: [#3058](https://github.com/buildkite/agent/pull/3058), [#3026](https://github.com/buildkite/agent/pull/3026), [#3055](https://github.com/buildkite/agent/pull/3055), [#3056](https://github.com/buildkite/agent/pull/3056), [#3048](https://github.com/buildkite/agent/pull/3048), [#3047](https://github.com/buildkite/agent/pull/3047), [#3049](https://github.com/buildkite/agent/pull/3049), [#3036](https://github.com/buildkite/agent/pull/3036), [#3041](https://github.com/buildkite/agent/pull/3041), [#3040](https://github.com/buildkite/agent/pull/3040), [#3037](https://github.com/buildkite/agent/pull/3037), [#3039](https://github.com/buildkite/agent/pull/3039) (@dependabot[bot])
+
+</details>
+
+## [v6.29.1](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.29.1) (2024-10-10)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.29.0...v6.29.1)
+
+### Fixed
+- Bump agent to v3.83.1 [#1385](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1385) (@DrJosh9000)
+
+<details>
+<summary><h3>Agent Changelog</h3></summary>
+
+## [v3.83.1](https://github.com/buildkite/agent/tree/v3.83.0) (2024-10-10)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.83.0...v3.83.1)
+
+### Fixed
+- Fix artifact up/download timeouts [#3033](https://github.com/buildkite/agent/pull/3033) (@DrJosh9000)
+
+</details>
+
+## [v6.29.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.29.0) (2024-10-09)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.28.0...v6.29.0)
+
+### Fixed
+- Add m8g instances to UsingArmInstances [#1381](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1381) (@wgrrrr)
+
+### Changed
+- Bump agent to v3.83.0 [#1383](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1383) (@DrJosh9000)
+- Bump golang.org/x/sys from 0.25.0 to 0.26.0 [#1382](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1382) (@dependabot[bot])
+
+<details>
+<summary><h3>Agent Changelog</h3></summary>
+
+## [v3.83.0](https://github.com/buildkite/agent/tree/v3.83.0) (2024-10-08)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.82.1...v3.83.0)
+
+### Added
+- Exit with code 94 if a mirror lock times out [#3023](https://github.com/buildkite/agent/pull/3023) (@DrJosh9000)
+- Add support for oidc aws session tags [#3015](https://github.com/buildkite/agent/pull/3015) (@sj26)
+- Support for future multipart artifact uploads [#2991](https://github.com/buildkite/agent/pull/2991) (@DrJosh9000)
+
+### Fixed
+- Tweak BUILDKITE_IGNORED_ENV handling [#3029](https://github.com/buildkite/agent/pull/3029) (@DrJosh9000)
+- BUG FIX: Ensure Build Title Is Correct When Checkout Is Skipped [#3024](https://github.com/buildkite/agent/pull/3024) (@123sarahj123)
+- Ensure all string slice args have whitespace cleaned off of each element [#3021](https://github.com/buildkite/agent/pull/3021) (@moskyb)
+- Fix data race on worker stop [#3016](https://github.com/buildkite/agent/pull/3016) (@DrJosh9000)
+
+### Internal
+- Migrate Agent Pipeline to Agent Cluster [#3018](https://github.com/buildkite/agent/pull/3018) (@matthewborden)
+- Refactor the various agent HTTP clients [#3017](https://github.com/buildkite/agent/pull/3017) (@DrJosh9000)
+- Dependabot bumps to busybox [#3025](https://github.com/buildkite/agent/pull/3025), golang.org/x packages [#3027](https://github.com/buildkite/agent/pull/3027), cloud provider packages [#3028](https://github.com/buildkite/agent/pull/3028), [#3019](https://github.com/buildkite/agent/pull/3019), [#3013](https://github.com/buildkite/agent/pull/3013), [#3009](https://github.com/buildkite/agent/pull/3009), DataDog packages [#3010](https://github.com/buildkite/agent/pull/3010) Ubuntu [#3012](https://github.com/buildkite/agent/pull/3012), [#3008](https://github.com/buildkite/agent/pull/3008), and go-pipeline [#3014](https://github.com/buildkite/agent/pull/3014) (@dependabot[bot])
+
+</details>
+
+## [v6.28.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.28.0) (2024-09-24)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.27.0...v6.28.0)
+
+### Fixed
+- fix: Add `r8g` to the `UsingArmInstances` logic [#1373](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1373) (@ParkMyCar)
+- Bump agent to v3.82.1 [#1376](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1376) (@patrobinson)
+
+### Changed
+- Pin amazon linux ami [#1377](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1377) (@patrobinson)
+- Remove Test Splitter [#1372](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1372) (@nprizal)
+
+<details>
+<summary>Agent Changelog</summary>
+
+## [v3.82.1](https://github.com/buildkite/agent/tree/v3.82.1) (2024-09-23)
+
+### Fixed
+- Work around issue with http2 connections on linux not cleanly closing, causing agents to be marked as lost [#3005](https://github.com/buildkite/agent/pull/3005) (@patrobinson)
+
+</details>
+
+
+## [v6.27.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.27.0) (2024-09-13)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.26.0...v6.27.0)
+
+### Added
+- Add signing verification behaviour and fix windows config option [#1370](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1370) (@wolfeidau)
+
+## [v6.26.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.26.0) (2024-09-11)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.25.0...v6.26.0)
+
+### Added
+- Add the option to create a KMS key for signing of pipelines [#1366](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1366) (@wolfeidau)
+
+### Changed
+- Bump agent to v3.81.0 [#1368](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1368) (@wolfeidau)
+- Bump agent to v3.80.0 [#1365](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1365) (@wolfeidau)
+
+<details>
+<summary>Agent Changelog</summary>
+
+## [v3.81.0](https://github.com/buildkite/agent/tree/v3.81.0) (2024-09-10)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.80.0...v3.81.0)
+
+### Fixed
+- Fix for region discovery issue with aws sdkv2 when running in ec2 [#2977](https://github.com/buildkite/agent/pull/2977) (@wolfeidau)
+- Explain verification-failure-behavior in more detail [#2984](https://github.com/buildkite/agent/pull/2984) (@DrJosh9000)
+
+### Added
+- Add sha256 checksum output to the formatting options [#2974](https://github.com/buildkite/agent/pull/2974) (@patrobinson)
+
+### Internal
+- Dependabot churn: [#2978](https://github.com/buildkite/agent/pull/2978), [#2980](https://github.com/buildkite/agent/pull/2980) (@dependabot[bot])
+
+## [v3.80.0](https://github.com/buildkite/agent/tree/v3.80.0) (2024-09-06)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.79.0...v3.80.0)
+
+### Added
+- Support AWS KMS for signing and verifying pipelines [#2960](https://github.com/buildkite/agent/pull/2960) (@wolfeidau)
+
+### Changed
+- Allow `buildkite-agent` to run a job when JWK is unavailable but failure behaviour is set to `warn` [#2945](https://github.com/buildkite/agent/pull/2945) (@CheeseStick)
+
+### Fixed
+- coda-content-type pass content-type to the server when specified [#2967](https://github.com/buildkite/agent/pull/2967) (@SorchaAbel)
+- Updated to support only ECC_NIST_P256 keyspec for initial release [#2973](https://github.com/buildkite/agent/pull/2973) (@wolfeidau)
+
+### Internal
+- Dependabot churn: [#2964](https://github.com/buildkite/agent/pull/2964), [#2965](https://github.com/buildkite/agent/pull/2965), [#2952](https://github.com/buildkite/agent/pull/2952), [#2972](https://github.com/buildkite/agent/pull/2972), [#2963](https://github.com/buildkite/agent/pull/2963) (@dependabot[bot])
+
+</details>
+
+### Internal
+- Bump golang.org/x/sys from 0.24.0 to 0.25.0 [#1367](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1367) (@dependabot[bot])
+
+
+## [v6.25.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.25.0) (2024-08-30)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.24.0...v6.25.0)
+
+### Changed
+- Bump agent to v3.79.0 [#1362](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1362) (@wolfeidau)
+
+<details>
+<summary>Agent Changelog</summary>
+
+## [v3.79.0](https://github.com/buildkite/agent/tree/v3.79.0) (2024-08-29)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.78.0...v3.79.0)
+
+### Fixed
+- Fix error when hook cannot be run due to missing interpreter [#2948](https://github.com/buildkite/agent/pull/2948) (@mcncl)
+
+### Added
+- Support for multiple trace context encodings [#2947](https://github.com/buildkite/agent/pull/2947) (@DrJosh9000)
+
+### Internal
+- Bump github.com/buildkite/go-pipeline from 0.11.0 to 0.12.0 [#2959](https://github.com/buildkite/agent/pull/2959) (@wolfeidau)
+- Dependabot churn: [#2951](https://github.com/buildkite/agent/pull/2951), [#2955](https://github.com/buildkite/agent/pull/2955), [#2949](https://github.com/buildkite/agent/pull/2949), [#2956](https://github.com/buildkite/agent/pull/2956), [#2954](https://github.com/buildkite/agent/pull/2954), [#2950](https://github.com/buildkite/agent/pull/2950), [#2953](https://github.com/buildkite/agent/pull/2953) (@dependabot[bot])
+
+</details>
+
+## [v6.24.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.24.0) (2024-08-21)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.23.0...v6.24.0)
+
+### Changed
+- docs: update RootVolumeIops to include gp3 [#1359](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1359) (@joemiller)
+- Bump agent to v3.78.0 [#1360](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1360) (@CerealBoy)
+
+### Internal
+- Dependabot updates: [#1358](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1358) (@dependabot[bot])
+
+<details>
+<summary>Agent Changelog</summary>
+
+## [v3.78.0](https://github.com/buildkite/agent/tree/v3.78.0) (2024-08-20)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.77.0...v3.78.0)
+
+### Fixed
+- fix for layout issues with log messages [#2933](https://github.com/buildkite/agent/pull/2933) (@wolfeidau)
+- Prevent Cancel from running when a k8s job is cancelled already [#2935](https://github.com/buildkite/agent/pull/2935) (@CerealBoy)
+- k8s: Unconditionally set `BUILDKITE_AGENT_ACCESS_TOKEN` [#2942](https://github.com/buildkite/agent/pull/2942) (@DrJosh9000)
+
+### Changed
+- Add a bit more context to the debugging for failing signature verify [#2926](https://github.com/buildkite/agent/pull/2926) (@wolfeidau)
+- Update description for the 'priority' option for the 'buildkite-agent annotate' command. [#2934](https://github.com/buildkite/agent/pull/2934) (@gilesgas)
+
+### Internal
+Dependabot churn: [#2927](https://github.com/buildkite/agent/pull/2927), [#2928](https://github.com/buildkite/agent/pull/2928), [#2929](https://github.com/buildkite/agent/pull/2929), [#2930](https://github.com/buildkite/agent/pull/2930), [#2931](https://github.com/buildkite/agent/pull/2931), [#2937](https://github.com/buildkite/agent/pull/2937), [#2939](https://github.com/buildkite/agent/pull/2939), [#2940](https://github.com/buildkite/agent/pull/2940), [#2943](https://github.com/buildkite/agent/pull/2943) (@dependabot[bot])
+
+</details>
+
+## [v6.23.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.23.0) (2024-08-09)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.22.4...v6.23.0)
+
+### Changed
+- Bump agent to v3.77.0 [#1355](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1355) (@wolfeidau)
+
+### Internal
+- Dependabot updates: [#1354](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1354) (@dependabot[bot])
+
+<details>
+<summary>Agent Changelog </summary>
+
+## [v3.77.0](https://github.com/buildkite/agent/tree/v3.77.0) (2024-08-08)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.76.2...v3.77.0)
+
+</details>
+
+## [v6.22.4](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.22.4) (2024-07-31)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.22.3...v6.22.4)
+
+### Changed
+- Bump agent to v3.76.2 [#1353](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1353), [#1351](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1351) (@DrJosh9000)
+- Bump Test Splitter version to v0.8.0 [#1349](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1349) (@nprizal)
+- Upgrade test-splitter-client to v0.7.3 [#1344](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1344) (@wooly)
+
+<details>
+<summary>Agent Changelog </summary>
+
+## [v3.76.2](https://github.com/buildkite/agent/tree/v3.76.2) (2024-08-01)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.76.1...v3.76.2)
+
+> [!NOTE]
+> v3.76.0 fixed an issue which caused the HTTP client in the agent to fall back to HTTP/1.1, see [#2908](https://github.com/buildkite/agent/pull/2908). If you need to disable HTTP/2.0 in your environment you can do this using the `--no-http2` flag or matching configuration option.
+
+### Fixed
+- Only override TLSClientConfig if set [#2913](https://github.com/buildkite/agent/pull/2913) (@DrJosh9000)
+
+
+## [v3.76.1](https://github.com/buildkite/agent/tree/v3.76.1) (2024-07-31)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.76.0...v3.76.1)
+
+> [!NOTE]
+> v3.76.0 fixed an issue which caused the HTTP client in the agent to fall back to HTTP/1.1, see [#2908](https://github.com/buildkite/agent/pull/2908). If you need to disable HTTP/2.0 in your environment you can do this using the `--no-http2` flag or matching configuration option.
+
+### Changed
+- Pass cancel grace period to bootstrap [#2910](https://github.com/buildkite/agent/pull/2910) (@DrJosh9000)
+
+## [v3.76.0](https://github.com/buildkite/agent/tree/v3.76.0) (2024-07-31)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.75.1...v3.76.0)
+
+> [!NOTE]
+> This release fixed an issue which caused the HTTP client in the agent to fall back to HTTP/1.1, see [#2908](https://github.com/buildkite/agent/pull/2908). If you need to disable HTTP/2.0 in your environment you can do this using the `--no-http2` flag or matching configuration option.
+
+### Changed
+- fix enable http/2 by default as intended by flags [#2908](https://github.com/buildkite/agent/pull/2908) (@wolfeidau)
+
+### Fixed
+- Let artifact phase and post-command run in grace period [#2899](https://github.com/buildkite/agent/pull/2899) (@DrJosh9000)
+
+### Internal
+- Dependabot updates: [#2902](https://github.com/buildkite/agent/pull/2902), [#2907](https://github.com/buildkite/agent/pull/2907), [#2903](https://github.com/buildkite/agent/pull/2903), [#2904](https://github.com/buildkite/agent/pull/2904), [#2901](https://github.com/buildkite/agent/pull/2901), [#2905](https://github.com/buildkite/agent/pull/2905), [#2896](https://github.com/buildkite/agent/pull/2896), [#2897](https://github.com/buildkite/agent/pull/2897) (@dependabot[bot])
+
+</details>
+
+## [v6.22.3](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.22.3) (2024-07-22)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.22.2...v6.22.3)
+
+### Changed
+- Bump Agent to v3.75.1 and Scaler to v1.8.0 [#1345](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1345) (@DrJosh9000)
+
+> [!NOTE]
+> Depending on how you upgrade existing stacks, you may not automatically be upgraded to v1.8.0 of Buildkite Agent Scaler. [A work around](https://github.com/buildkite/elastic-ci-stack-for-aws/issues/1172#issuecomment-1697304023) exists for this known issue.
+
+<details>
+<summary>Agent Changelog </summary>
+
+## [v3.75.1](https://github.com/buildkite/agent/tree/v3.75.1) (2024-07-22)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.75.0...v3.75.1)
+
+### Fixed
+- Fix downloaded artifact permissions [#2894](https://github.com/buildkite/agent/pull/2894) (@DrJosh9000)
+
+</details>
+
+## [v6.22.2](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.22.2) (2024-07-18)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.22.1...v6.22.2)
+
+### Changed
+- Bump agent version to v3.75.0 [#1342](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1342) (@wolfeidau)
+
+### Added
+- First pass at adding test-splitter to the elastic-ci linux stack. [#1337](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1337) (@wooly)
+
+### Dependencies
+- Bump golang.org/x/sys from 0.21.0 to 0.22.0 [#1340](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1340) (@dependabot[bot])
+
+<details>
+<summary>Agent Changelog </summary>
+<p><a href="https://github.com/buildkite/agent/compare/v3.74.1...v3.75.0">Full Changelog</a></p>
+<h5 id="added">Added</h5>
+<ul>
+<li>Introduce <code>riscv64</code> architecture <a href="https://github.com/buildkite/agent/pull/2877">#2877</a> (@TimePrinciple)</li>
+<li>Add a SHA256SUMS file <a href="https://github.com/buildkite/agent/pull/2890">#2890</a> (@DrJosh9000)</li>
+</ul>
+<h5 id="changed">Changed</h5>
+<ul>
+<li>Reject more secrets <a href="https://github.com/buildkite/agent/pull/2884">#2884</a> (@DrJosh9000)</li>
+<li>Include repo name in Packages image path <a href="https://github.com/buildkite/agent/pull/2871">#2871</a> (@swebb)</li>
+</ul>
+<h5 id="fixed">Fixed</h5>
+<ul>
+<li>Fix some common artifact download bugs <a href="https://github.com/buildkite/agent/pull/2878">#2878</a> (@DrJosh9000)</li>
+<li>SUP-2343: remove &quot;retry&quot; example from &quot;buildkite-agent step get&quot; as not valid <a href="https://github.com/buildkite/agent/pull/2879">#2879</a> (@tomowatt)</li>
+</ul>
+<h5 id="internal">Internal</h5>
+<ul>
+<li>Log in to buildkite packages right before pushing images <a href="https://github.com/buildkite/agent/pull/2892">#2892</a> (@moskyb)</li>
+<li>Update LICENSE.txt <a href="https://github.com/buildkite/agent/pull/2885">#2885</a> (@wooly)</li>
+<li>Remove Packagecloud agent publish steps from agent pipeline <a href="https://github.com/buildkite/agent/pull/2873">#2873</a> (@tommeier)</li>
+<li>Release Docker images on Buildkite Packages <a href="https://github.com/buildkite/agent/pull/2837">#2837</a> (@swebb)</li>
+<li>Fix the OIDC login for Packages <a href="https://github.com/buildkite/agent/pull/2875">#2875</a> (@swebb)</li>
+<li>Fix the Packages registry name <a href="https://github.com/buildkite/agent/pull/2874">#2874</a> (@swebb)</li>
+<li>Fix image name when pushing to Buildkite packages <a href="https://github.com/buildkite/agent/pull/2870">#2870</a> (@swebb)</li>
+<li>Dependabot updates: <a href="https://github.com/buildkite/agent/pull/2888">#2888</a>, <a href="https://github.com/buildkite/agent/pull/2887">#2887</a>, <a href="https://github.com/buildkite/agent/pull/2882">#2882</a>, <a href="https://github.com/buildkite/agent/pull/2883">#2883</a>, <a href="https://github.com/buildkite/agent/pull/2880">#2880</a> (@dependabot[bot])</li>
+</ul>
+</details>
+
+## [v6.22.1](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.22.1) (2024-07-04)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.22.0...v6.22.1)
+
+### Changed
+- bump the agent version to v3.74.1 [#1338](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1338) (@wolfeidau)
+
+### Internal
+- Create dependabot.yml, update some Go things [#1332](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1332) (@DrJosh9000)
+
+<details>
+<summary>Agent Changelog </summary>
+<p><a href="https://github.com/buildkite/agent/compare/v3.74.0...v3.74.1">Full Changelog</a></p>
+<h5 id="added">Added</h5>
+<ul>
+<li>Log public signing key thumbprint and signed step payload <a href="https://github.com/buildkite/agent/pull/2853">#2853</a> (@jordandcarter)</li>
+</ul>
+<h5 id="fixed">Fixed</h5>
+<ul>
+<li>Don&#39;t try to early-set env vars <a href="https://github.com/buildkite/agent/pull/2852">#2852</a> (@DrJosh9000)</li>
+<li>Convey env vars between k8s containers <a href="https://github.com/buildkite/agent/pull/2851">#2851</a> (@DrJosh9000)</li>
+<li>Fix typo in &quot;kuberentes&quot; <a href="https://github.com/buildkite/agent/pull/2836">#2836</a> (@moskyb)</li>
+</ul>
+<h5 id="internal">Internal</h5>
+<ul>
+<li>Make the graphql endpoint for <code>buildkite-agent tool sign</code> configurable <a href="https://github.com/buildkite/agent/pull/2841">#2841</a> (@moskyb)</li>
+<li>Dependabot updates: <a href="https://github.com/buildkite/agent/pull/2863">#2863</a>, <a href="https://github.com/buildkite/agent/pull/2862">#2862</a>, <a href="https://github.com/buildkite/agent/pull/2857">#2857</a>, <a href="https://github.com/buildkite/agent/pull/2860">#2860</a>, <a href="https://github.com/buildkite/agent/pull/2864">#2864</a>, <a href="https://github.com/buildkite/agent/pull/2856">#2856</a>, <a href="https://github.com/buildkite/agent/pull/2867">#2867</a>, <a href="https://github.com/buildkite/agent/pull/2846">#2846</a>, <a href="https://github.com/buildkite/agent/pull/2848">#2848</a>, <a href="https://github.com/buildkite/agent/pull/2847">#2847</a>, <a href="https://github.com/buildkite/agent/pull/2845">#2845</a>, <a href="https://github.com/buildkite/agent/pull/2840">#2840</a>, <a href="https://github.com/buildkite/agent/pull/2844">#2844</a>, <a href="https://github.com/buildkite/agent/pull/2842">#2842</a>, <a href="https://github.com/buildkite/agent/pull/2843">#2843</a>, <a href="https://github.com/buildkite/agent/pull/2849">#2849</a> (@dependabot[bot])</li>
+</ul>
+</details>
+
+## [v6.22.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.22.0) (2024-06-19)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.21.0...v6.22.0)
+
+### Added
+* Add new stack parameter for enabling dualstack docker [PLT-2325] [#1306](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1306) (@yob)
+
+### Changed
+* Upgrade agent to 3.74.0 [#1328](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1328) (@zhming0)
+
+
+<details>
+<summary>Agent Changelog </summary>
+<p><a href="https://github.com/buildkite/agent/compare/v3.73.1...v3.74.0">Full Changelog</a></p>
+<h5 id="security">Security</h5>
+<ul>
+<li>⚠️ When using <code>artifact download</code>, artifacts that were uploaded with paths containing <code>..</code> will no longer be able to traverse up from the destination path. This change is unlikely to break the vast majority of pipelines, however if you are relying on <code>..</code> for path traversal and cannot fix your pipeline, you can enable the new experiment <code>allow-artifact-path-traversal</code> <a href="https://github.com/buildkite/agent/pull/2815">#2815</a> (@DrJosh9000)</li>
+<li>Redact Job API token like other env vars <a href="https://github.com/buildkite/agent/pull/2834">#2834</a> (@DrJosh9000)</li>
+</ul>
+<h5 id="added">Added</h5>
+<ul>
+<li>Add logs to allowed-[repositories|plugins] <a href="https://github.com/buildkite/agent/pull/2810">#2810</a> (@jakubm-canva)</li>
+</ul>
+<h5 id="fixed">Fixed</h5>
+<ul>
+<li>Fix error in k8s after job completes <a href="https://github.com/buildkite/agent/pull/2804">#2804</a> (@DrJosh9000)</li>
+</ul>
+<h5 id="changed">Changed</h5>
+<ul>
+<li>PTY rows/cols increased <a href="https://github.com/buildkite/agent/pull/2806">#2806</a> (@pda)</li>
+<li>Dont sign initial steps with interpolations <a href="https://github.com/buildkite/agent/pull/2813">#2813</a> (@moskyb)</li>
+</ul>
+<h5 id="internal">Internal</h5>
+<ul>
+<li>kubernetes-exec is now a flag <a href="https://github.com/buildkite/agent/pull/2814">#2814</a> (@DrJosh9000)</li>
+<li>shell logger: Use fmt functions once <a href="https://github.com/buildkite/agent/pull/2805">#2805</a> (@DrJosh9000)</li>
+<li>Update deprecated import <a href="https://github.com/buildkite/agent/pull/2811">#2811</a> (@DrJosh9000)</li>
+<li>Use Rand per-test in agent/plugin/error_test.go <a href="https://github.com/buildkite/agent/pull/2795">#2795</a> (@moskyb)</li>
+<li>Publish debian and rpm packages to Buildkite Packages <a href="https://github.com/buildkite/agent/pull/2824">#2824</a> <a href="https://github.com/buildkite/agent/pull/2826">#2826</a> <a href="https://github.com/buildkite/agent/pull/2831">#2831</a> <a href="https://github.com/buildkite/agent/pull/2830">#2830</a> <a href="https://github.com/buildkite/agent/pull/2833">#2833</a> (@sj26)</li>
+<li>Dependabot updates: <a href="https://github.com/buildkite/agent/pull/2809">#2809</a>, <a href="https://github.com/buildkite/agent/pull/2816">#2816</a>, <a href="https://github.com/buildkite/agent/pull/2800">#2800</a>, <a href="https://github.com/buildkite/agent/pull/2801">#2801</a>, <a href="https://github.com/buildkite/agent/pull/2802">#2802</a>, <a href="https://github.com/buildkite/agent/pull/2803">#2803</a>, <a href="https://github.com/buildkite/agent/pull/2787">#2787</a>, <a href="https://github.com/buildkite/agent/pull/2798">#2798</a>, <a href="https://github.com/buildkite/agent/pull/2808">#2808</a>, <a href="https://github.com/buildkite/agent/pull/2827">#2827</a> <a href="https://github.com/buildkite/agent/pull/2817">#2817</a>, <a href="https://github.com/buildkite/agent/pull/2818">#2818</a>, <a href="https://github.com/buildkite/agent/pull/2819">#2819</a>, <a href="https://github.com/buildkite/agent/pull/2822">#2822</a>, <a href="https://github.com/buildkite/agent/pull/2829">#2829</a>, <a href="https://github.com/buildkite/agent/pull/2832">#2832</a>, <a href="https://github.com/buildkite/agent/pull/2835">#2835</a> (@dependabot[bot])</li>
+</ul>
+</details>
+
+> [!IMPORTANT]
+> When using `artifact download`, artifacts that were uploaded with paths containing `..` will no longer be able to traverse up from the destination path. This change is unlikely to break the vast majority of pipelines, however if you are relying on `..` for path traversal and cannot fix your pipeline, you can enable the new experiment `allow-artifact-path-traversal`
+
+
+
+### Fixed
+* Lazy-unmount /tmp before masking [#1327](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1327) (@DrJosh9000)
+
+### Dependencies
+* Bump Docker buildx to v0.15.0 [#1329](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1329) (@rianmcguire)
+
+## [v6.21.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.21.0) (2024-05-27)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.20.0...v6.21.0)
+
+### Changed
+- Bump agent version to 3.73.1 [#1323](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1323) [#1321](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1321) [#1320](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1320) (@DrJosh9000 + @moskyb)
+
+## [v6.20.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.20.0) (2024-05-03)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.19.0...v6.20.0)
+
+### Fixed
+- Fix windows agent not restarting [#1318](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1318) (@patrobinson)
+- Fix SSH key clearance in buildkite-ami.pkr.hcl [#1316](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1316) (@Gezi-lzq @123sarahj123)
+
+### Dependencies
+- Bump Docker buildx to v0.14.0 and Docker Compose to v2.27.0 [#1317](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1317) (@orien)
+
+## [v6.19.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.19.0) (2024-04-30)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.18.0...v6.19.0)
+
+### Changed
+- Bump agent version [#1314](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1314) (@patrobinson)
+- Only allow SSH to reach Packer instance from Elastic Stack [#1308](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1308) (@steveh)
+- Restore "Packer Builder" tag for Packer instances [#1307](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1307) (@steveh)
+
 ## [v6.18.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.18.0) (2024-03-28)
 [Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.17.0...v6.18.0)
 

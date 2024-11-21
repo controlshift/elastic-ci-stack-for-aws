@@ -27,15 +27,23 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: Buildkite Configuration
+          default: Base Configuration
         Parameters:
+        - BuildkiteAgentToken
         - BuildkiteAgentTokenParameterStorePath
         - BuildkiteAgentTokenParameterStoreKMSKey
-        - BuildkiteAgentToken
         - BuildkiteQueue
 
       - Label:
-          default: Advanced Buildkite Configuration
+          default: Signed Pipelines Configuration
+        Parameters:
+        - PipelineSigningKMSKeyId
+        - PipelineSigningKMSKeySpec
+        - PipelineSigningKMSAccess
+        - PipelineSigningVerificationFailureBehavior
+
+      - Label:
+          default: Advanced Configuration
         Parameters:
         - BuildkiteAgentRelease
         - BuildkiteAgentTags
@@ -186,7 +194,7 @@ Parameters:
   BuildkiteAgentScalerVersion:
     Description: Version of the buildkite-agent-scaler to use
     Type: String
-    Default: "1.7.0"
+    Default: "1.8.0"
 
   LogRetentionDays:
     Type: Number
@@ -295,12 +303,12 @@ Parameters:
     Default: ""
 
   InstanceTypes:
-    Description: Comma-separated list with 1-4 instance types. The order is a prioritized preference for launching OnDemand instances, and a non-prioritized list of types to consider for Spot Instances (where used).
+    Description: Comma-separated list with 1-10 instance types. The order is a prioritized preference for launching OnDemand instances, and a non-prioritized list of types to consider for Spot Instances (where used).
     Type: String
     Default: t3.large
     MinLength: 1
-    AllowedPattern: "^[\\w-\\.]+(,[\\w-\\.]*){0,3}$"
-    ConstraintDescription: "must contain 1-4 instance types separated by commas. No space before/after the comma."
+    AllowedPattern: "^[\\w-\\.]+(,[\\w-\\.]*){0,9}$"
+    ConstraintDescription: "must contain 1-10 instance types separated by commas. No space before/after the comma."
 
   MaxSize:
     Description: Maximum number of instances
@@ -386,7 +394,7 @@ Parameters:
     Default: 125
 
   RootVolumeIops:
-    Description: If the `RootVolumeType` is io1 or io2, the number of IOPS to provision for the root volume
+    Description: If the `RootVolumeType` is gp3, io1, or io2, the number of IOPS to provision for the root volume
     Type: Number
     Default: 1000
 
@@ -461,6 +469,14 @@ Parameters:
       - "true"
       - "false"
     Default: "true"
+
+  DockerNetworkingProtocol:
+    Type: String
+    Description: Which IP version to enable for docker containers and building docker images. Only applies to Linux instances, not Windows.
+    AllowedValues:
+      - "ipv4"
+      - "dualstack"
+    Default: "ipv4"
 
   EnableSecretsPlugin:
     Type: String
@@ -560,6 +576,35 @@ Parameters:
     Description: Optional - Customise the EC2 instance Name tag
     Default: ""
 
+  PipelineSigningKMSKeyId:
+    Type: String
+    Description: Optional - Identifier of the KMS key used to sign and verify pipelines (Created if left blank and PipelineSigningKMSKeySpec is selected)
+    Default: ""
+
+  PipelineSigningKMSKeySpec:
+    Type: String
+    Description: The key spec for the KMS key used to sign and verify pipelines
+    AllowedValues:
+      - "ECC_NIST_P256"
+      - "none"
+    Default: "none"
+
+  PipelineSigningKMSAccess:
+    Type: String
+    Description: The access level for the KMS key used to sign and verify pipelines
+    AllowedValues:
+      - "sign-and-verify"
+      - "verify"
+    Default: "sign-and-verify"
+
+  PipelineSigningVerificationFailureBehavior:
+    Type: String
+    Description: The behavior when a job is received without a valid verifiable signature (without a signature, with an invalid signature, or with a signature that fails verification)
+    AllowedValues:
+      - "block"
+      - "warn"
+    Default: "block"
+
 Rules:
   HasToken:
     Assertions:
@@ -574,6 +619,17 @@ Rules:
                 - !Ref BuildkiteAgentTokenParameterStorePath
                 - ""
         AssertDescription: "You must provide BuildkiteAgentToken or BuildkiteAgentTokenParameterStorePath"
+  HasPipelineSigningKMSKey:
+    Assertions:
+      - Assert:
+          !Or
+            - !Equals
+              - !Ref PipelineSigningKMSKeyId
+              - ""
+            - !Equals
+              - !Ref PipelineSigningKMSKeySpec
+              - "none"
+        AssertDescription: "You must provide either provide a PipelineSigningKMSKeyId or select a PipelineSigningKMSKeySpec but not both"
 
 Outputs:
   VpcId:
@@ -593,6 +649,12 @@ Outputs:
       !If [ CreateSecretsBucket, !Ref ManagedSecretsLoggingBucket, "Undefined" ]
     Export:
       Name: !Sub '${AWS::StackName}-ManagedSecretsLoggingBucket'
+
+  PipelineSigningKMSKey:
+    Value:
+      !If [ CreatePipelineSigningKMSKey, !Ref PipelineSigningKMSKey, "none" ]
+    Export:
+      Name: !Sub '${AWS::StackName}-PipelineSigningKMSKey'
 
   AutoScalingGroupName:
     Value: !Ref AgentAutoScaleGroup
@@ -651,13 +713,31 @@ Conditions:
       !Equals [ !Ref RootVolumeName, "" ]
 
     UseInstanceType2:
-      !Not [ !Equals [ !Select [ "1", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "" ] ] ] ], ""] ]
+      !Not [ !Equals [ !Select [ "1", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ], ""] ]
 
     UseInstanceType3:
-      !Not [ !Equals [ !Select [ "2", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "" ] ] ] ], ""] ]
+      !Not [ !Equals [ !Select [ "2", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ], ""] ]
 
     UseInstanceType4:
-      !Not [ !Equals [ !Select [ "3", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "" ] ] ] ], ""] ]
+      !Not [ !Equals [ !Select [ "3", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ], ""] ]
+
+    UseInstanceType5:
+      !Not [ !Equals [ !Select [ "4", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ], ""] ]
+
+    UseInstanceType6:
+      !Not [ !Equals [ !Select [ "5", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ], ""] ]
+
+    UseInstanceType7:
+      !Not [ !Equals [ !Select [ "6", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ], ""] ]
+
+    UseInstanceType8:
+      !Not [ !Equals [ !Select [ "7", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ], ""] ]
+
+    UseInstanceType9:
+      !Not [ !Equals [ !Select [ "8", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ], ""] ]
+
+    UseInstanceType10:
+      !Not [ !Equals [ !Select [ "9", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ], ""] ]
 
     UseManagedPolicyARN:
       !Not [ !Equals [ !Join [ "", !Ref ManagedPolicyARNs ], "" ] ]
@@ -677,6 +757,20 @@ Conditions:
 
     UseCostAllocationTags:
       !Equals [ !Ref EnableCostAllocationTags, "true" ]
+
+    UsePipelineSigningKMSKey:
+      !Not [ !Equals [ !Ref PipelineSigningKMSKeyId, "" ] ]
+
+    CreatePipelineSigningKMSKey:
+      !And
+      - !Equals [ !Ref PipelineSigningKMSKeyId, "" ]
+      - !Not [ !Equals [ !Ref PipelineSigningKMSKeySpec, "none" ] ]
+
+    HasPipelineSigningKMSKey:
+      !Or [ !Condition CreatePipelineSigningKMSKey, !Condition UsePipelineSigningKMSKey ]
+
+    HasSigningKMSAccessSignAndVerify:
+      !Equals [ !Ref PipelineSigningKMSAccess, "sign-and-verify" ]
 
     HasKeyName:
       !Not [ !Equals [ !Ref KeyName, "" ] ]
@@ -713,6 +807,7 @@ Conditions:
           - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "c7g" ]
           - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "c7gd" ]
           - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "c7gn" ]
+          - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "c8g" ]
         - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "g5g" ]
         - !Or
           - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "i4g" ]
@@ -723,11 +818,13 @@ Conditions:
           - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "m6gd" ]
           - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "m7g" ]
           - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "m7gd" ]
+          - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "m8g" ]
         - !Or
           - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "r6g" ]
           - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "r6gd" ]
           - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "r7g" ]
           - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "r7gd" ]
+          - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "r8g" ]
         - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "t4g" ]
         - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "x2gd" ]
 
@@ -864,6 +961,18 @@ Resources:
       Type: String
       Value: !Ref BuildkiteAgentToken
 
+  PipelineSigningKMSKey:
+    Type: AWS::KMS::Key
+    Condition: CreatePipelineSigningKMSKey
+    DeletionPolicy: Retain
+    Properties:
+      Description: Key used to sign and verify pipelines
+      KeySpec: !Ref PipelineSigningKMSKeySpec
+      KeyUsage: SIGN_VERIFY
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PipelineSigningKey'
+
   # Allow ec2 instances to assume a role and be granted the IAMPolicies
   IAMInstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -895,6 +1004,26 @@ Resources:
                  - !Ref 'AWS::NoValue'
           - !Ref 'AWS::NoValue'
       Policies:
+        - !If
+          - HasPipelineSigningKMSKey
+          - PolicyName: PipelineSigningKMSKeyAccess
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    !If
+                      - HasSigningKMSAccessSignAndVerify
+                      - - kms:Sign
+                        - kms:Verify
+                        - kms:GetPublicKey
+                      - - kms:Verify
+                        - kms:GetPublicKey
+                  Resource: !If
+                              - CreatePipelineSigningKMSKey
+                              - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${PipelineSigningKMSKey}
+                              - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${PipelineSigningKMSKeyId}
+          - !Ref 'AWS::NoValue'
         - !If
           - UseCustomerManagedKeyForParameterStore
           - PolicyName: DecryptAgentToken
@@ -1135,7 +1264,7 @@ Resources:
           KeyName: !If [ "HasKeyName", !Ref KeyName, !Ref 'AWS::NoValue' ]
           IamInstanceProfile:
             Arn: !GetAtt "IAMInstanceProfile.Arn"
-          InstanceType: !Select [ "0", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "" ] ] ] ]
+          InstanceType: !Select [ "0", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", ""] ] ] ]
           MetadataOptions:
             HttpTokens: !Ref IMDSv2Tokens
             # Allow containers using a Docker network on the host to receive IDMSv2 responses
@@ -1205,6 +1334,7 @@ Resources:
                   <powershell>
                   $Env:DOCKER_USERNS_REMAP="${EnableDockerUserNamespaceRemap}"
                   $Env:DOCKER_EXPERIMENTAL="${EnableDockerExperimental}"
+                  $Env:DOCKER_NETWORKING_PROTOCOL="${DockerNetworkingProtocol}"
                   powershell -file C:\buildkite-agent\bin\bk-configure-docker.ps1 >> C:\buildkite-agent\elastic-stack.log
 
                   $Env:BUILDKITE_STACK_NAME="${AWS::StackName}"
@@ -1222,6 +1352,8 @@ Resources:
                   $Env:BUILDKITE_QUEUE="${BuildkiteQueue}"
                   $Env:BUILDKITE_AGENT_ENABLE_GIT_MIRRORS="${BuildkiteAgentEnableGitMirrors}"
                   $Env:BUILDKITE_ELASTIC_BOOTSTRAP_SCRIPT="${BootstrapScriptUrl}"
+                  $Env:BUILDKITE_AGENT_SIGNING_KMS_KEY="${PipelineSigningKMSKey}"
+                  $Env:BUILDKITE_AGENT_SIGNING_FAILURE_BEHAVIOR="${PipelineSigningVerificationFailureBehavior}"
                   $Env:BUILDKITE_ENV_FILE_URL="${AgentEnvFileUrl}"
                   $Env:BUILDKITE_AUTHORIZED_USERS_URL="${AuthorizedUsersUrl}"
                   $Env:BUILDKITE_ECR_POLICY="${ECRAccessPolicy}"
@@ -1239,6 +1371,7 @@ Resources:
                     LocalSecretsBucket: !If [ CreateSecretsBucket, !Ref ManagedSecretsBucket, !Ref SecretsBucket ],
                     LocalSecretsBucketRegion: !If [ CreateSecretsBucket, !Ref "AWS::Region", !Ref SecretsBucketRegion ],
                     AgentTokenPath: !If [ UseCustomerManagedParameterPath, !Ref BuildkiteAgentTokenParameterStorePath, !Ref BuildkiteAgentTokenParameter ],
+                    PipelineSigningKMSKey: !If [ CreatePipelineSigningKMSKey, !Ref PipelineSigningKMSKey, !Ref PipelineSigningKMSKeyId ],
                   }
               - !Sub
                 - |
@@ -1260,6 +1393,7 @@ Resources:
                   #!/bin/bash -v
                   DOCKER_USERNS_REMAP=${EnableDockerUserNamespaceRemap} \
                   DOCKER_EXPERIMENTAL=${EnableDockerExperimental} \
+                  DOCKER_NETWORKING_PROTOCOL=${DockerNetworkingProtocol} \
                   BUILDKITE_ENABLE_INSTANCE_STORAGE="${EnableInstanceStorage}" \
                     /usr/local/bin/bk-configure-docker.sh
                   --==BOUNDARY==
@@ -1278,6 +1412,8 @@ Resources:
                   BUILDKITE_AGENT_TRACING_BACKEND="${BuildkiteAgentTracingBackend}" \
                   BUILDKITE_AGENT_RELEASE="${BuildkiteAgentRelease}" \
                   BUILDKITE_AGENT_CANCEL_GRACE_PERIOD="${BuildkiteAgentCancelGracePeriod}" \
+                  BUILDKITE_AGENT_SIGNING_KMS_KEY="${PipelineSigningKMSKey}" \
+                  BUILDKITE_AGENT_SIGNING_FAILURE_BEHAVIOR="${PipelineSigningVerificationFailureBehavior}" \
                   BUILDKITE_QUEUE="${BuildkiteQueue}" \
                   BUILDKITE_AGENT_ENABLE_GIT_MIRRORS="${BuildkiteAgentEnableGitMirrors}" \
                   BUILDKITE_ELASTIC_BOOTSTRAP_SCRIPT="${BootstrapScriptUrl}" \
@@ -1292,6 +1428,7 @@ Resources:
                   ECR_PLUGIN_ENABLED="${EnableECRPlugin}" \
                   DOCKER_LOGIN_PLUGIN_ENABLED="${EnableDockerLoginPlugin}" \
                   DOCKER_EXPERIMENTAL="${EnableDockerExperimental}" \
+                  DOCKER_USERNS_REMAP=${EnableDockerUserNamespaceRemap} \
                   AWS_REGION="${AWS::Region}" \
                     /usr/local/bin/bk-install-elastic-stack.sh
                   --==BOUNDARY==--
@@ -1299,6 +1436,7 @@ Resources:
                     LocalSecretsBucket: !If [ CreateSecretsBucket, !Ref ManagedSecretsBucket, !Ref SecretsBucket ],
                     LocalSecretsBucketRegion: !If [ CreateSecretsBucket, !Ref "AWS::Region", !Ref SecretsBucketRegion ],
                     AgentTokenPath: !If [ UseCustomerManagedParameterPath, !Ref BuildkiteAgentTokenParameterStorePath, !Ref BuildkiteAgentTokenParameter ],
+                    PipelineSigningKMSKey: !If [ CreatePipelineSigningKMSKey, !Ref PipelineSigningKMSKey, !Ref PipelineSigningKMSKeyId ],
                   }
 
   AgentAutoScaleGroup:
@@ -1317,19 +1455,44 @@ Resources:
             LaunchTemplateId: !Ref AgentLaunchTemplate
             Version: !GetAtt "AgentLaunchTemplate.LatestVersionNumber"
           Overrides:
-          - InstanceType: !Select [ "0", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "" ] ] ] ]
+          - InstanceType: !Select [ "0", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ]
           - !If
             - UseInstanceType2
-            - InstanceType: !Select [ "1", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "" ] ] ] ]
+            - InstanceType: !Select [ "1", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ]
             - !Ref "AWS::NoValue"
           - !If
             - UseInstanceType3
-            - InstanceType: !Select [ "2", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "" ] ] ] ]
+            - InstanceType: !Select [ "2", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ]
             - !Ref "AWS::NoValue"
           - !If
             - UseInstanceType4
-            - InstanceType: !Select [ "3", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "" ] ] ] ]
+            - InstanceType: !Select [ "3", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ]
             - !Ref "AWS::NoValue"
+          - !If
+            - UseInstanceType5
+            - InstanceType: !Select [ "4", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ]
+            - !Ref "AWS::NoValue"
+          - !If
+            - UseInstanceType6
+            - InstanceType: !Select [ "5", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ]
+            - !Ref "AWS::NoValue"
+          - !If
+            - UseInstanceType7
+            - InstanceType: !Select [ "6", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ]
+            - !Ref "AWS::NoValue"
+          - !If
+            - UseInstanceType8
+            - InstanceType: !Select [ "7", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ]
+            - !Ref "AWS::NoValue"
+          - !If
+            - UseInstanceType9
+            - InstanceType: !Select [ "8", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ]
+            - !Ref "AWS::NoValue"
+          - !If
+            - UseInstanceType10
+            - InstanceType: !Select [ "9", !Split [ ",", !Join [ ",", [ !Ref InstanceTypes, "", "", "", "", "", "", "", "", "" ] ] ] ]
+            - !Ref "AWS::NoValue"
+
       MinSize: !Ref MinSize
       MaxSize: !Ref MaxSize
       Cooldown: 60

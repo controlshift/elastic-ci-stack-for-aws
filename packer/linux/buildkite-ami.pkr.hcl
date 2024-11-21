@@ -40,7 +40,7 @@ variable "is_released" {
 data "amazon-ami" "al2023" {
   filters = {
     architecture        = var.arch
-    name                = "al2023-ami-minimal-*"
+    name                = "al2023-ami-minimal-2023.5.20240903.0-*"
     virtualization-type = "hvm"
   }
   most_recent = true
@@ -55,6 +55,7 @@ source "amazon-ebs" "elastic-ci-stack-ami" {
   region                                    = var.region
   source_ami                                = data.amazon-ami.al2023.id
   ssh_username                              = "ec2-user"
+  ssh_clear_authorized_keys = true
   temporary_security_group_source_public_ip = true
   encrypt_boot                              = true
 
@@ -109,14 +110,14 @@ build {
   }
 
   provisioner "shell" {
+    script = "scripts/install-session-manager-plugin.sh"
+  }
+
+  provisioner "shell" {
     script = "scripts/install-buildkite-agent.sh"
   }
 
   provisioner "shell" {
     script = "scripts/install-buildkite-utils.sh"
-  }
-
-  provisioner "shell" {
-    inline = ["rm /home/ec2-user/.ssh/authorized_keys"]
   }
 }
