@@ -40,7 +40,7 @@ variable "is_released" {
 data "amazon-ami" "al2023" {
   filters = {
     architecture        = var.arch
-    name                = "al2023-ami-minimal-2023.5.20240903.0-*"
+    name                = "al2023-ami-minimal-*"
     virtualization-type = "hvm"
   }
   most_recent = true
@@ -62,6 +62,13 @@ source "amazon-ebs" "elastic-ci-stack-ami" {
   launch_block_device_mappings {
     device_name = "/dev/xvda"
     volume_size   = 30
+  }
+
+  launch_block_device_mappings {
+    volume_type           = "gp3"    
+    device_name = "/dev/xvda"
+    volume_size = 10
+    delete_on_termination = true
   }
 
   run_tags = {
@@ -119,5 +126,9 @@ build {
 
   provisioner "shell" {
     script = "scripts/install-buildkite-utils.sh"
+  }
+
+  provisioner "shell" {
+    script = "scripts/cleanup.sh"
   }
 }
