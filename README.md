@@ -47,7 +47,6 @@ AWS CLI | ✅ | ✅
 S3 Secrets Bucket | ✅ | ✅
 ECR Login | ✅ | ✅
 Docker Login | ✅ | ✅
-CloudWatch Logs Agent | ✅ | ✅
 Per-Instance Bootstrap Script | ✅ | ✅
 SSM Access | ✅ | ✅
 Instance Storage (NVMe) | ✅ |
@@ -176,12 +175,8 @@ aws cloudformation describe-stacks --stack-name MY_STACK_NAME \
   --query 'Stacks[].Parameters[].[ParameterKey,ParameterValue]' --output table
 ```
 ### Collect logs from CloudWatch
-Provide us with logs from CloudWatch Logs:
+It's currently not possible to disable logging to Cloudwatch from EC2 instances, so we removed the agent setup on our fork to avoid this.
 
-```
-/buildkite/elastic-stack/{instance-id}
-/buildkite/system/{instance-id}
-```
 ### Collect logs via script
 An alternative method to collect the logs is to use the `log-collector` script in the `utils` folder.
 The script will collect CloudWatch logs for the Instance, Lambda function, and AutoScaling activity and package them in a

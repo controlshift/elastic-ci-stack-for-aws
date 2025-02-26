@@ -87,8 +87,7 @@ PLUGINS_ENABLED=()
 echo "The following plugins will be enabled: ${PLUGINS_ENABLED[*]-}"
 
 # cfn-env is sourced by the environment hook in builds
-# DO NOT PUT SECRETES IN HERE, they will appear in both the cloudwatch and
-# build logs, and the agent's log redactor will not be able to redact them.
+# DO NOT PUT SECRETES IN HERE, they will appear in build logs.
 
 # We will create it in two steps so that we don't need to go crazy with quoting and escaping. The
 # first sets up a helper function, the second populates the default values for some environment

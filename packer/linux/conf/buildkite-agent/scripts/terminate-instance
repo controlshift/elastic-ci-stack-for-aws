@@ -16,9 +16,6 @@ mark_as_unhealthy() {
     --health-status Unhealthy
 }
 
-echo "sleeping for 10 seconds before terminating instance to allow agent logs to drain to cloudwatch..."
-sleep 10
-
 token=$(
   curl \
     --fail --silent --show-error \
