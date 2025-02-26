@@ -4,8 +4,7 @@ set -uxo pipefail
 
 ########################################################
 # We make an attempt to clean up the specific resources created during this pipeline elsewhere. However
-# sometimes that fails, are various CloudFormation Stacks, S3 Buckets and CloudWatch Log Groups can be
-# left around.
+# sometimes that fails, are various CloudFormation Stacks and S3 Buckets left around.
 #
 # This is a safety net at the end of the build that attempts to delete any resources created by this
 # pipeline more than a day ago, regardless of if they were created in the current build or not.

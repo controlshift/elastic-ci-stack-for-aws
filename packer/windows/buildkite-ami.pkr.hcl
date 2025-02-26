@@ -89,10 +89,6 @@ build {
   }
 
   provisioner "powershell" {
-    script = "scripts/install-cloudwatch-agent.ps1"
-  }
-
-  provisioner "powershell" {
     script = "scripts/install-lifecycled.ps1"
   }
 

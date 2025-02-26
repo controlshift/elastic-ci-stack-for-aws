@@ -1109,7 +1109,6 @@ Resources:
           - Effect: Allow
             Action:
               - autoscaling:DescribeAutoScalingInstances
-              - cloudwatch:PutMetricData
               - cloudformation:DescribeStackResource
               - ec2:DescribeTags
             Resource: "*"
