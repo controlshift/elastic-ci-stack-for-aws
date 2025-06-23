@@ -4,6 +4,180 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [v6.40.2](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.40.1...v6.40.2) (2025-06-11)
+- fix: update agent-scaler to 1.9.4 [#1487](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1487) ([scadu](https://github.com/scadu))
+
+## [v6.40.1](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.40.0...v6.40.1) (2025-06-10)
+- fix: correct reference to Elastic CI Mode toggle [#1485](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1485) ([scadu](https://github.com/scadu))
+
+## [v6.40.0](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.39.0...v6.40.0) (2025-06-10)
+- feat: add graceful scale-in with experimental Elastic CI Mode [#1475](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1475) ([scadu](https://github.com/scadu))
+
+## [v6.39.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.39.0) (2025-06-06)
+[Full Changelog](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.38.0...v6.39.0)
+
+### Changed
+- Bump Agent v3.97.0 -> v3.98.1 [#1482](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1482) (@jeremybumsted)
+- Update to latest aws lambda runtime [#1462](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1462) (@lswith)
+
+<details>
+<summary><h3>Agent Changelog</h3></summary>
+
+## [v3.98.1](https://github.com/buildkite/agent/tree/v3.98.1) (2025-06-04)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.98.0...v3.98.1)
+
+### Fixed
+- Gracefully Handle Missing GitHub PR refs/pull/%s/head in Checkout [#3294](https://github.com/buildkite/agent/pull/3294) (@123sarahj123)
+- Fix bootstrap subprocess handling [#3331](https://github.com/buildkite/agent/pull/3331) (@DrJosh9000)
+- Reduce git fetch from twice to once for typical Github PR build [#3327](https://github.com/buildkite/agent/pull/3327) (@zhming0)
+- Set job log tempfile permissions to 644 (was 600) [#3330](https://github.com/buildkite/agent/pull/3330) (@moskyb)
+
+### Internal
+- Tag tests with os / arch [#3326](https://github.com/buildkite/agent/pull/3326) (@catkins)
+
+## [v3.98.0](https://github.com/buildkite/agent/tree/v3.98.0) (2025-05-27)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.97.2...v3.98.0)
+
+### Added
+- Add build URL to log fields [#3317](https://github.com/buildkite/agent/pull/3317) (@ChrisBr)
+- Add kubernetes-bootstrap subcommand [#3306](https://github.com/buildkite/agent/pull/3306), [#3314](https://github.com/buildkite/agent/pull/3314), [#3316](https://github.com/buildkite/agent/pull/3316) (@DrJosh9000)
+
+### Fixed
+- Fix `redactor add --format json` help string [#3322](https://github.com/buildkite/agent/pull/3322) (@francoiscampbell)
+
+## Dependency updates
+- [#3320](https://github.com/buildkite/agent/pull/3320), [#3318](https://github.com/buildkite/agent/pull/3318), [#3319](https://github.com/buildkite/agent/pull/3319), [#3323](https://github.com/buildkite/agent/pull/3323), [#3321](https://github.com/buildkite/agent/pull/3321) (@dependabot[bot])
+
+
+## [v3.97.2](https://github.com/buildkite/agent/tree/v3.97.2) (2025-05-13)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.97.1...v3.97.2)
+
+### Fixed
+- fix: Don't disconnect-after-idle when just given a job [#3312](https://github.com/buildkite/agent/pull/3312) (@DrJosh9000)
+
+### Dependency updates
+- [#3307](https://github.com/buildkite/agent/pull/3307), [#3311](https://github.com/buildkite/agent/pull/3311), [#3308](https://github.com/buildkite/agent/pull/3308), [#3309](https://github.com/buildkite/agent/pull/3309), [#3310](https://github.com/buildkite/agent/pull/3310) (@dependabot[bot])
+
+
+## [v3.97.1](https://github.com/buildkite/agent/tree/v3.97.1) (2025-05-12)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.97.0...v3.97.1)
+
+### Fixed
+- Fix unusable `BUILDKITE_AGENT_TAGS_FROM_EC2_TAGS` env var [#3285](https://github.com/buildkite/agent/pull/3285) (@shanesmith)
+- Set ignore_agent_in_dispatches when finishing with disconnect-after-job [#3297](https://github.com/buildkite/agent/pull/3297) (@DrJosh9000)
+
+### Internal
+- Introduce a structure where coverage can increase on githttp checkout code [#3296](https://github.com/buildkite/agent/pull/3296) (@wolfeidau)
+- TE-3708-follow-up: Use go test -cover to generate coverage report [#3295](https://github.com/buildkite/agent/pull/3295) (@zhming0)
+- TE-3708: use bktec on agent [#3292](https://github.com/buildkite/agent/pull/3292) (@zhming0)
+
+### Dependency updates
+- [#3298](https://github.com/buildkite/agent/pull/3298), [#3300](https://github.com/buildkite/agent/pull/3300), [#3301](https://github.com/buildkite/agent/pull/3301), [#3299](https://github.com/buildkite/agent/pull/3299), [#3287](https://github.com/buildkite/agent/pull/3287), [#3290](https://github.com/buildkite/agent/pull/3290), [#3291](https://github.com/buildkite/agent/pull/3291) (@dependabot[bot])
+
+<details>
+
+## [v6.38.0](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.37.0...v6.38.0) (2025-05-13)
+
+## Changed
+* Bump Docker buildx to v0.23.0 and Docker Compose to v2.35.1 by @orien in https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1472
+* ⬆️ Bump Windows server to 2022 by @mcncl and @scadu in https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1456
+* Bump golang.org/x/sys from 0.32.0 to 0.33.0 by @dependabot in https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1478
+
+## [v6.37.0](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.36.0...v6.37.0) (2025-04-30)
+
+### Added
+* Option to recursively copy AWS SSM parameters to an env file by @wolfeidau in https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1455
+* More instance types by @ivannalisetska in https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1465
+* `BuildkiteAgentSignalGracePeriod` parameter by @mcncl in https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1468
+
+### Changed
+* Buildkite Agent v3.97.0, was v3.93.1 by @pda & @PriyaSudip in https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1473 & https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1453
+* Go 1.23 by @mcncl in https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1467
+  * Go 1.23.6 (just fixes) by @mcncl in https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1469
+* Bump golang.org/x/sys from 0.30.0 to 0.32.0 by @dependabot in https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1464
+
+## [v6.36.0](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.35.0...v6.36.0) (2025-03-10)
+
+### Changed
+- Bump buildkite-agent to v3.93.1 [#1449](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1449) ([DrJosh9000](https://github.com/DrJosh9000))
+- Tidy up hcl whitespace and upgrade windows to use gp3 for more iops [#1407](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1407) ([wolfeidau](https://github.com/wolfeidau))
+
+### Fixed
+- fix: make sure buildkite-agent.service is not terminated by OOM [#1450](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1450) ([scadu](https://github.com/scadu))
+
+### Internal
+- Update CODEOWNERS [#1447](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1447) ([karensawrey](https://github.com/karensawrey))
+
+### Dependencies
+- Bump github.com/google/go-cmp from 0.6.0 to 0.7.0 [#1448](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1448) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+<details>
+<summary><h3>Agent Changelog</h3></summary>
+
+## [v3.93.1](https://github.com/buildkite/agent/tree/v3.93.1) (2025-02-27)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.93.0...v3.93.1)
+
+### Added
+- Set env when job cancelled for hooks [#3213](https://github.com/buildkite/agent/pull/3213) (@sj26)
+
+## [v3.93.0](https://github.com/buildkite/agent/tree/v3.93.0) (2025-02-26)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.92.1...v3.93.0)
+
+### Added
+- Handle pause actions [#3211](https://github.com/buildkite/agent/pull/3211) (@DrJosh9000)
+- Add agent stop command [#3198](https://github.com/buildkite/agent/pull/3198) (@sj26)
+
+### Changed
+- Skip pushing the git commit metadata if BUILDKITE_COMMIT_RESOLVED=true [#3152](https://github.com/buildkite/agent/pull/3152) (@CerealBoy)
+- Update cancel_signal.go [#3197](https://github.com/buildkite/agent/pull/3197) (@karensawrey)
+- Capture datadog metrics usage from registering agents [#3195](https://github.com/buildkite/agent/pull/3195) (@wolfeidau)
+- Capture some HTTP client details from registering agents [#3193](https://github.com/buildkite/agent/pull/3193) (@yob)
+
+### Fixed
+- Change the signal handler to ensure the agent quits after the grace period [#3200](https://github.com/buildkite/agent/pull/3200) (@wolfeidau)
+- Don't fail if the interrupt fails when the PID is already exited [#3199](https://github.com/buildkite/agent/pull/3199) (@wolfeidau)
+- bash shouldn't be assumed to be in /bin for portability [#1534](https://github.com/buildkite/agent/pull/1534) (@jgedarovich)
+
+### Internal
+- Fixes from the new modernize analyzer from the Go team [#3209](https://github.com/buildkite/agent/pull/3209) (@wolfeidau)
+- Kill exp/maps and replace with stdlib maps [#3210](https://github.com/buildkite/agent/pull/3210) (@moskyb)
+
+### Dependabot
+- Dependencies - they just keep being updated! [#3203](https://github.com/buildkite/agent/pull/3203), [#3208](https://github.com/buildkite/agent/pull/3208), [#3205](https://github.com/buildkite/agent/pull/3205), [#3204](https://github.com/buildkite/agent/pull/3204), [#3207](https://github.com/buildkite/agent/pull/3207), [#3183](https://github.com/buildkite/agent/pull/3183), [#3186](https://github.com/buildkite/agent/pull/3186), [#3194](https://github.com/buildkite/agent/pull/3194) (@dependabot[bot])
+
+## [v3.92.1](https://github.com/buildkite/agent/tree/v3.92.1) (2025-02-13)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.92.0...v3.92.1)
+
+### Removed
+
+- Revert "Ensure the log streamer respects forced shutdown of the agent" [#3191](https://github.com/buildkite/agent/pull/3191) (@wolfeidau)
+- Revert "Fix data race on exitImmediately" [#3190](https://github.com/buildkite/agent/pull/3190) (@wolfeidau)
+
+### Dependabot
+- The usual updates: [#3188](https://github.com/buildkite/agent/pull/3188), [#3185](https://github.com/buildkite/agent/pull/3185) (@dependabot[bot])
+
+> [!NOTE]
+> Reverted [#3180](https://github.com/buildkite/agent/pull/3180) and [#3187](https://github.com/buildkite/agent/pull/3187) as this change introduced a bug which resulted in truncated log output. Will re-think this fix and push it out again in another release after we do some more testing.
+
+## [v3.92.0](https://github.com/buildkite/agent/tree/v3.92.0) (2025-02-12)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.91.0...v3.92.0)
+
+### Fixed
+- Ensure the log streamer respects forced shutdown of the agent [#3180](https://github.com/buildkite/agent/pull/3180) (@wolfeidau)
+- Fix data race on exitImmediately [#3187](https://github.com/buildkite/agent/pull/3187) (@DrJosh9000)
+- Reduce timeout for these two operations to avoid holding up compute [#3177](https://github.com/buildkite/agent/pull/3177) (@wolfeidau)
+- Timeout waiting for client containers [#3172](https://github.com/buildkite/agent/pull/3172) (@DrJosh9000)
+- Clean up worker pool implementation [#3171](https://github.com/buildkite/agent/pull/3171) (@DrJosh9000)
+
+### Internal
+- rm bazel-*, add to .gitignore [#3178](https://github.com/buildkite/agent/pull/3178) (@DrJosh9000)
+- Speed up needlessly slow tests [#3179](https://github.com/buildkite/agent/pull/3179) (@DrJosh9000)
+
+### Dependabot
+- The usual updates: [#3184](https://github.com/buildkite/agent/pull/3184), [#3182](https://github.com/buildkite/agent/pull/3182), [#3174](https://github.com/buildkite/agent/pull/3174), [#3173](https://github.com/buildkite/agent/pull/3173), [#3176](https://github.com/buildkite/agent/pull/3176) (@dependabot[bot])
+
+</details>
+
 ## [v6.35.0](https://github.com/buildkite/elastic-ci-stack-for-aws/compare/v6.34.0...v6.35.0) (2025-02-06)
 
 ### Added
@@ -49,7 +223,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - 🔨 Add GitHub action for Linear sync [#1433](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1433) (@mcncl)
 - Add EBS volume tag for BK queue, keep optional cost allocation tags [#1430](https://github.com/buildkite/elastic-ci-stack-for-aws/pull/1430) (@petetomasik)
 
-> [!WARNING]  
+> [!WARNING]
 > This release will force an upgrade of the agent scaler by checking the version is 1.9.1 or higher. This is required so we can introduce a new parameter to the agent scaler to pass through agent endpoint.
 
 ## [v6.33.0](https://github.com/buildkite/elastic-ci-stack-for-aws/tree/v6.33.0) (2025-01-09)
