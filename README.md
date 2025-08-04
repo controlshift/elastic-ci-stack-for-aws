@@ -1,6 +1,6 @@
 <h1><img alt="Elastic CI Stack for AWS" src="images/banner.png?raw=true"></h1>
 
-![Build status](https://badge.buildkite.com/d178ab942e2f606a83e79847704648437d82a9c5fdb434b7ae.svg?branch=main)
+[![Build status](https://badge.buildkite.com/d178ab942e2f606a83e79847704648437d82a9c5fdb434b7ae.svg?branch=main)](https://buildkite.com/buildkite-aws-stack/buildkite-aws-stack/builds/latest?branch=main)
 
 ## Buildkite Elastic CI Stack for AWS
 
@@ -12,8 +12,8 @@ The Buildkite Elastic CI Stack for AWS gives you a private, autoscaling [Buildki
 
 Learn more about the Elastic CI Stack for AWS and how to get started with it from the Buildkite Docs:
 
-- [Elastic CI Stack for AWS overview](https://buildkite.com/docs/agent/v3/elastic-ci-aws/elastic-ci-stack-overview) page, for a summary of the stack's architecture and supported features.
-- [Linux and Windows setup for the Elastic CI Stack for AWS](https://buildkite.com/docs/guides/elastic-ci-stack-aws) page for a step-by-step guide on how to set up the Elastic CI Stack in AWS for these operating systems.
+- [Elastic CI Stack for AWS overview](https://buildkite.com/docs/agent/v3/aws/elastic-ci-stack) page, for a summary of the stack's architecture and supported features.
+- [Linux and Windows setup for the Elastic CI Stack for AWS](https://buildkite.com/docs/agent/v3/aws/elastic-ci-stack/ec2-linux-and-windows/setup) page for a step-by-step guide on how to set up the Elastic CI Stack in AWS for these operating systems.
 
 A [list of recommended resources](#recommended-reading) provides links to other pages in the Buildkite Docs for more detailed information.
 
@@ -25,7 +25,7 @@ The current release is ![](https://img.shields.io/github/release/buildkite/elast
 
 > Although the stack creates its own VPC by default, Buildkite highly recommends following best practices by setting up a separate development AWS account and using role switching and consolidated billing — see the [Delegate Access Across AWS Accounts tutorial](http://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html) for more information.
 
-If you want to use the [AWS CLI](https://aws.amazon.com/cli/), download [`config.json.example`](config.json.example), rename it to `config.json`, and then run the below command:
+If you want to use the [AWS CLI](https://aws.amazon.com/cli/), download [`config.json.example`](config.json.example), rename it to `config.json`, update it with your agent token, then run the below AWS CLI command to create the AWS CloudFormation stack:
 
 ```bash
 aws cloudformation create-stack \
@@ -55,6 +55,42 @@ If you want to explicitly specify which actions CloudFormation can perform on yo
 ```bash
 aws cloudformation deploy --template-file templates/service-role.yml --stack-name buildkite-elastic-ci-stack-service-role --region us-east-1 --capabilities CAPABILITY_IAM
 ```
+
+## Experimental Resource Limits
+
+The Elastic CI Stack includes configurable systemd resource limits to prevent resource exhaustion. These limits can be configured using CloudFormation parameters:
+
+| Parameter                          | Description                                            | Default |
+|------------------------------------|--------------------------------------------------------|---------|
+| `ExperimentalEnableResourceLimits` | Enable systemd resource limits for the Buildkite agent | `false` |
+| `ResourceLimitsMemoryHigh`         | MemoryHigh limit (e.g., '90%' or '4G')                 | `90%`   |
+| `ResourceLimitsMemoryMax`          | MemoryMax limit (e.g., '90%' or '4G')                  | `90%`   |
+| `ResourceLimitsMemorySwapMax`      | MemorySwapMax limit (e.g., '90%' or '4G')              | `90%`   |
+| `ResourceLimitsCPUWeight`          | CPU weight (1-10000)                                   | `100`   |
+| `ResourceLimitsCPUQuota`           | CPU quota (e.g., '90%')                                | `90%`   |
+| `ResourceLimitsIOWeight`           | I/O weight (1-10000)                                   | `80`    |
+
+### Example Configuration
+
+To enable resource limits with custom values, include these parameters in your CloudFormation template or config file:
+
+```yaml
+{
+  "Parameters": {
+    "ExperimentalEnableResourceLimits": "true",
+    "ResourceLimitsMemoryHigh": "80%",
+    "ResourceLimitsMemoryMax": "85%",
+    "ResourceLimitsMemorySwapMax": "90%",
+    "ResourceLimitsCPUWeight": "100",
+    "ResourceLimitsCPUQuota": "85%",
+    "ResourceLimitsIOWeight": "75"
+  }
+}
+```
+
+### Notes
+- Resource limits are disabled by default
+- Values can be specified as percentages or absolute values (for memory-related parameters)
 
 ## Development
 
@@ -127,11 +163,11 @@ to decide whether to apply it.
 
 Following on from the [Getting started](#getting-started) pages above, to gain a better understanding of how Elastic CI Stack works and how to use it most effectively and securely, see the following resources:
 
-- [Installation and setup options](https://buildkite.com/docs/agent/v3/aws)
-- [Template parameters](https://buildkite.com/docs/agent/v3/elastic-ci-aws/parameters)
-- [Using AWS Secrets Manager](https://buildkite.com/docs/agent/v3/aws/secrets-manager)
-- [VPC Design](https://buildkite.com/docs/agent/v3/aws/vpc)
-- [CloudFormation service role](https://buildkite.com/docs/agent/v3/elastic-ci-aws/cloudformation-service-role)
+- [Buildkite Agents in AWS overview](https://buildkite.com/docs/agent/v3/aws)
+- [Template parameters](https://buildkite.com/docs/agent/v3/aws/elastic-ci-stack/ec2-linux-and-windows/template-parameters)
+- [Using AWS Secrets Manager](https://buildkite.com/docs/agent/v3/aws/elastic-ci-stack/ec2-linux-and-windows/secrets-manager)
+- [VPC design](https://buildkite.com/docs/agent/v3/aws/architecture/vpc)
+- [CloudFormation service role](https://buildkite.com/docs/agent/v3/aws/elastic-ci-stack/ec2-linux-and-windows/cloudformation-service-role)
 
 ## Questions and support
 
