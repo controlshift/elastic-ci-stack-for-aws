@@ -1,3 +1,4 @@
+# Pipeline: https://buildkite.com/buildkite/elastic-stack-for-aws-ami-cleaner
 steps:
   - name: ":broom: Delete AMIs ({{matrix}})"
     command: .buildkite/steps/clean-old-amis
@@ -35,8 +36,9 @@ steps:
             - organization_slug
             - organization_id
             - pipeline_slug
-            - branch_build
-      - docker-compose#v5.10.0:
+            - build_branch
+      - docker-compose#v5.12.1:
           run: ruby
           config: .buildkite/docker-compose.yml
           propagate-aws-auth-tokens: true
+          mount-buildkite-agent: true
