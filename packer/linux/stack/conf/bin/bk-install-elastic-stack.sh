@@ -608,10 +608,10 @@ function docker_pull_with_retry() {
   done
 }
 
-docker_pull_with_retry 'postgres:17'
-docker_pull_with_retry 'ruby:3.4.1-alpine3.21'
-docker_pull_with_retry 'docker.elastic.co/elasticsearch/elasticsearch:8.15.0'
-docker_pull_with_retry 'redis:6'
+docker_pull_with_retry 'postgres:18'
+docker_pull_with_retry 'ruby:3.4.5-alpine3.21'
+docker_pull_with_retry 'docker.elastic.co/elasticsearch/elasticsearch:8.19.9'
+docker_pull_with_retry 'redis:8'
 
 # Record bootstrap as complete (this should be the last step in this file)
 echo "Completed" >"$STATUS_FILE"
