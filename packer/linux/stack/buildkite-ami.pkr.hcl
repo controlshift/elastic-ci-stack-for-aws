@@ -77,6 +77,7 @@ source "amazon-ebs" "elastic-ci-stack-ami" {
   ssh_username                              = "ec2-user"
   ssh_clear_authorized_keys                 = true
   temporary_security_group_source_public_ip = true
+  encrypt_boot                              = true
 
   metadata_options {
     http_endpoint               = "enabled"
