@@ -41,13 +41,17 @@ fi
 
 echo "Checking disk space"
 if ! /usr/local/bin/bk-check-disk-space.sh; then
-  echo "Cleaning up docker resources older than ${DOCKER_PRUNE_UNTIL:-4h}"
-  docker image prune --all --force --filter "until=${DOCKER_PRUNE_UNTIL:-4h}"
+  echo "~~~ :broom: Pruning docker resources to free disk space"
+  docker image prune --all --force --filter "until=${DOCKER_PRUNE_UNTIL:-4h}" || true
+
+  if [[ "${DOCKER_BUILDER_PRUNE_ENABLED:-false}" == "true" ]]; then
+    docker builder prune --all --force --filter "until=${DOCKER_PRUNE_UNTIL:-4h}" || true
+  fi
 
   echo "Checking disk space again"
   # Capture disk space output for potential error logging
   if ! disk_check_output=$(/usr/local/bin/bk-check-disk-space.sh 2>&1); then
-    echo "--- :warning: Disk health checks failed."
+    echo "--- :warning: Insufficient disk space after cleanup."
     echo "${disk_check_output}"
 
     # Check if instance termination is enabled (default: false for backward compatibility)
@@ -101,6 +105,7 @@ done
 if [[ -n "${BUILDKITE_SECRETS_BUCKET:-}" && "${SECRETS_PLUGIN_ENABLED:-}" == "1" ]]; then
   export BUILDKITE_PLUGIN_S3_SECRETS_BUCKET="$BUILDKITE_SECRETS_BUCKET"
   export BUILDKITE_PLUGIN_S3_SECRETS_REGION="$BUILDKITE_SECRETS_BUCKET_REGION"
+  export BUILDKITE_PLUGIN_S3_SECRETS_SKIP_SSH_KEY_NOT_FOUND_WARNING="${BUILDKITE_SECRETS_PLUGIN_SKIP_SSH_KEY_NOT_FOUND_WARNING:-false}"
 
   # shellcheck source=/dev/null
   source /usr/local/buildkite-aws-stack/plugins/secrets/hooks/environment
@@ -110,9 +115,17 @@ if [[ "${BUILDKITE_ECR_POLICY:-}" != "none" && "${ECR_PLUGIN_ENABLED:-}" == "1" 
   export BUILDKITE_PLUGIN_ECR_LOGIN=1
   export BUILDKITE_PLUGIN_ECR_RETRIES=3
 
+  # Allow pipeline-level override, otherwise use CloudFormation parameter
+  set_unless_present "BUILDKITE_PLUGIN_ECR_CREDENTIAL_HELPER" "${ECR_CREDENTIAL_HELPER_ENABLED:-false}"
+
   # map AWS_ECR_LOGIN_REGISTRY_IDS into the plugin list format
   if [[ -n "${AWS_ECR_LOGIN_REGISTRY_IDS:-}" ]]; then
     export BUILDKITE_PLUGIN_ECR_ACCOUNT_IDS_0="${AWS_ECR_LOGIN_REGISTRY_IDS}"
+  fi
+
+  # map AWS_ECR_LOGIN into the plugin format
+  if [[ -n "${AWS_ECR_LOGIN:-}" ]]; then
+    export BUILDKITE_PLUGIN_ECR_LOGIN="${AWS_ECR_LOGIN}"
   fi
 
   # shellcheck source=/dev/null

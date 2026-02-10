@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+AGENT_VERSION="3.117.0"
+
 case $(uname -m) in
 x86_64) ARCH=amd64 ;;
 aarch64) ARCH=arm64 ;;
@@ -15,7 +17,6 @@ sudo mkdir -p /var/lib/buildkite-agent/.aws
 sudo cp /tmp/conf/aws/config /var/lib/buildkite-agent/.aws/config
 sudo chown -R buildkite-agent:buildkite-agent /var/lib/buildkite-agent/.aws
 
-AGENT_VERSION=3.103.0
 echo "Downloading buildkite-agent v${AGENT_VERSION} stable..."
 sudo curl -Lsf -o /usr/bin/buildkite-agent-stable \
   "https://download.buildkite.com/agent/stable/${AGENT_VERSION}/buildkite-agent-linux-${ARCH}"
@@ -62,6 +63,8 @@ sudo cp /tmp/conf/buildkite-agent/systemd/buildkite-agent.service /etc/systemd/s
 echo "Adding cloud-init failure safety check..."
 sudo mkdir -p /etc/systemd/system/cloud-final.service.d/
 sudo cp /tmp/conf/buildkite-agent/systemd/cloud-final.service.d/10-power-off-on-failure.conf /etc/systemd/system/cloud-final.service.d/10-power-off-on-failure.conf
+sudo mkdir -p /etc/systemd/system/cloud-init.service.d/
+sudo cp /tmp/conf/buildkite-agent/systemd/cloud-init.service.d/10-power-off-on-failure.conf /etc/systemd/system/cloud-init.service.d/10-power-off-on-failure.conf
 
 echo "Adding termination scripts..."
 sudo cp /tmp/conf/buildkite-agent/scripts/stop-agent-gracefully /usr/local/bin/stop-agent-gracefully
