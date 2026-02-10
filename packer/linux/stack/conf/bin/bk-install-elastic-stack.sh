@@ -599,7 +599,16 @@ else
   echo "Skipping cfn-signal (not deployed by CloudFormation)"
 fi
 
-# allow failures while warming the images we use.
+echo "warming docker images..."
+
+function docker_pull_with_retry() {
+  docker_image=$1
+
+  for i in {1..5}; do
+    docker pull "$docker_image" && break || sleep 5
+  done
+}
+
 docker_pull_with_retry 'postgres:18.1'
 docker_pull_with_retry 'ruby:4.0.1-alpine3.22'
 docker_pull_with_retry 'docker.elastic.co/elasticsearch/elasticsearch:8.19.11'
