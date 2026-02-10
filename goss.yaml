@@ -50,10 +50,6 @@ port:
     - "::"
 
 service:
-  amazon-cloudwatch-agent:
-    enabled: true
-    running: true
-
   amazon-ssm-agent:
     enabled: true
     running: true

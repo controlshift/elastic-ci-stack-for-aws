@@ -104,7 +104,6 @@ build {
   provisioner "powershell" {
     scripts = [
       "scripts/install-utils.ps1",
-      "scripts/install-cloudwatch-agent.ps1",
       "scripts/install-lifecycled.ps1",
       "scripts/enable-containers.ps1"
     ]
