@@ -119,6 +119,11 @@ build {
     script = "scripts/install-docker.sh"
   }
 
+  # CloudWatch agent
+  provisioner "shell" {
+    script = "scripts/install-cloudwatch-agent.sh"
+  }
+
   # Session Manager plugin
   provisioner "shell" {
     script = "scripts/install-session-manager-plugin.sh"

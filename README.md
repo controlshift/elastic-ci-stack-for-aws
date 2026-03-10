@@ -273,7 +273,12 @@ aws cloudformation describe-stacks --stack-name MY_STACK_NAME \
 
 ### Collect logs from CloudWatch
 
-It's currently not possible to disable logging to Cloudwatch from EC2 instances, so we removed the agent setup on our fork to avoid this.
+Provide Buildkite with logs from CloudWatch Logs:
+
+```bash
+/buildkite/elastic-stack/{instance-id}
+/buildkite/system/{instance-id}
+```
 
 ### Collect logs via script
 

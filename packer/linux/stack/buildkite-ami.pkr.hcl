@@ -136,6 +136,10 @@ build {
   }
 
   provisioner "shell" {
+    script = "scripts/configure-cloudwatch-agent.sh"
+  }
+
+  provisioner "shell" {
     script = "scripts/install-buildkite-agent.sh"
   }
 
