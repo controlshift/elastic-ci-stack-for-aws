@@ -2,8 +2,8 @@
 # This file is sourced by installation scripts
 
 # Core Tools
-$AWS_CLI_WINDOWS_VERSION = "2.34.0"
-$SESSION_MANAGER_PLUGIN_VERSION = "1.2.779.0"
+$AWS_CLI_WINDOWS_VERSION = "2.34.21"
+$SESSION_MANAGER_PLUGIN_VERSION = "1.2.792.0"
 
 # Development Tools
 $GIT_VERSION = "2.39.1"
