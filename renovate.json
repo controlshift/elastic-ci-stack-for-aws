@@ -52,15 +52,26 @@
     {
       "customType": "regex",
       "fileMatch": [
-        "^packer/linux/base/scripts/versions\\.sh$",
-        "^packer/windows/base/scripts/versions\\.ps1$"
+        "^packer/linux/base/scripts/versions\\.sh$"
       ],
       "matchStrings": [
-        "export GIT_LFS_VERSION=\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\"",
-        "\\$GIT_VERSION = \"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
+        "export GIT_LFS_VERSION=\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
       ],
       "datasourceTemplate": "github-releases",
       "depNameTemplate": "git-lfs/git-lfs",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^packer/windows/base/scripts/versions\\.ps1$"
+      ],
+      "matchStrings": [
+        "\\$GIT_VERSION = \"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "git-for-windows/git",
+      "extractVersionTemplate": "^v?(?<version>\\d+\\.\\d+\\.\\d+)",
       "versioningTemplate": "semver"
     },
     {
@@ -187,6 +198,7 @@
     {
       "matchPackageNames": [
         "git-lfs/git-lfs",
+        "git-for-windows/git",
         "goss-org/goss",
         "docker/compose",
         "docker/buildx",
