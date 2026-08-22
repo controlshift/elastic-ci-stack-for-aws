@@ -240,17 +240,29 @@ EOF
 # We warned about not putting secrets in this file
 echo Wrote to /var/lib/buildkite-agent/cfn-env:
 cat /var/lib/buildkite-agent/cfn-env
+chown root:buildkite-agent /var/lib/buildkite-agent/cfn-env
+chmod 0640 /var/lib/buildkite-agent/cfn-env
 echo
 
-if [[ "${BUILDKITE_AGENT_RELEASE}" == "edge" ]]; then
+case "${BUILDKITE_AGENT_RELEASE}" in
+edge)
   echo Downloading buildkite-agent edge...
   curl -Lsf -o /usr/bin/buildkite-agent-edge \
     "https://download.buildkite.com/agent/experimental/latest/buildkite-agent-linux-${ARCH}"
-  chmod +x /usr/bin/buildkite-agent-edge
+  chmod 0755 /usr/bin/buildkite-agent-edge
   buildkite-agent-edge --version
-else
-  echo Not using buildkite-agent edge.
-fi
+  ;;
+oldstable)
+  echo Downloading buildkite-agent oldstable...
+  curl -Lsf -o /usr/bin/buildkite-agent-oldstable \
+    "https://download.buildkite.com/agent/oldstable/latest/buildkite-agent-linux-${ARCH}"
+  chmod 0755 /usr/bin/buildkite-agent-oldstable
+  buildkite-agent-oldstable --version
+  ;;
+*)
+  echo Not using buildkite-agent edge or oldstable.
+  ;;
+esac
 
 if [[ "${BUILDKITE_ADDITIONAL_SUDO_PERMISSIONS}" != "" ]]; then
   echo "buildkite-agent ALL=NOPASSWD: ${BUILDKITE_ADDITIONAL_SUDO_PERMISSIONS}" \
@@ -308,8 +320,106 @@ if [[ "${BUILDKITE_AGENT_ENABLE_GIT_MIRRORS:-false}" == "true" ]]; then
     echo Not mounting git-mirrors to instance storage as instance storage is disabled.
   fi
 
+  if [[ -n "${BUILDKITE_GIT_MIRROR_SEED_BUCKET:-}" ]]; then
+    GIT_MIRROR_SEED_PREFIX="git-mirror-seeds"
+    echo "Seeding git-mirrors from s3://${BUILDKITE_GIT_MIRROR_SEED_BUCKET}/${GIT_MIRROR_SEED_PREFIX}/..."
+
+    # Seeding is best-effort, it is only an optimisation. If listing or extraction fails, the
+    # agent falls back to cloning mirrors from scratch as usual, and the boot must not fail.
+    seed_keys=()
+    if seed_listing="$(
+      aws s3api list-objects-v2 \
+        --bucket "$BUILDKITE_GIT_MIRROR_SEED_BUCKET" \
+        --prefix "${GIT_MIRROR_SEED_PREFIX}/" \
+        --output json \
+        | jq -r '.Contents[]?.Key // empty'
+    )"; then
+      while IFS= read -r seed_key; do
+        if [[ "$seed_key" == *.tar || "$seed_key" == *.tar.gz || "$seed_key" == *.zip ]]; then
+          seed_keys+=("$seed_key")
+        fi
+      done <<<"$seed_listing"
+    else
+      echo "WARNING: Failed to list git mirror seeds in s3://${BUILDKITE_GIT_MIRROR_SEED_BUCKET}/${GIT_MIRROR_SEED_PREFIX}/, continuing with empty git-mirrors..."
+    fi
+
+    if [[ ${#seed_keys[@]} -eq 0 ]]; then
+      echo "No git mirror seeds found."
+    fi
+
+    for seed_key in "${seed_keys[@]}"; do
+      seed_archive="${seed_key##*/}"
+      seed_uri="s3://${BUILDKITE_GIT_MIRROR_SEED_BUCKET}/${seed_key}"
+
+      case "$seed_archive" in
+      *.tar.gz) seed_mirror_dir="${seed_archive%.tar.gz}" ;;
+      *.tar) seed_mirror_dir="${seed_archive%.tar}" ;;
+      *.zip) seed_mirror_dir="${seed_archive%.zip}" ;;
+      esac
+
+      if [[ -z "$seed_mirror_dir" || "$seed_mirror_dir" == "." || "$seed_mirror_dir" == ".." ]]; then
+        echo "WARNING: Skipping seed ${seed_key} as its name does not contain a mirror directory name..."
+        continue
+      fi
+
+      if [[ -e "${BUILDKITE_AGENT_GIT_MIRRORS_PATH}/${seed_mirror_dir}" ]]; then
+        echo "WARNING: Skipping seed ${seed_archive} as mirror ${seed_mirror_dir} already exists..."
+        continue
+      fi
+
+      # Extract each archive into its own staging directory and validate the contents before
+      # moving the mirror into the live mirrors path, so a bad archive can never overwrite or
+      # delete other mirrors. Staging lives on the mirrors volume rather than /tmp, because
+      # /tmp is a memory-backed tmpfs by default (MountTmpfsAtTmp) which large archives would
+      # exhaust, and so the final move is a rename on the same filesystem.
+      if ! seed_staging="$(mktemp -d "${BUILDKITE_AGENT_GIT_MIRRORS_PATH}/.git-mirror-seed-XXXXXX")" \
+        || ! mkdir "${seed_staging}/extract"; then
+        echo "WARNING: Failed to create staging directory for ${seed_archive}, skipping seed..."
+        continue
+      fi
+
+      extracted=false
+      echo "Extracting git mirror seed ${seed_archive}..."
+      case "$seed_archive" in
+      *.tar.gz)
+        if aws s3 cp "$seed_uri" - | tar -xzf - -C "${seed_staging}/extract"; then
+          extracted=true
+        fi
+        ;;
+      *.tar)
+        if aws s3 cp "$seed_uri" - | tar -xf - -C "${seed_staging}/extract"; then
+          extracted=true
+        fi
+        ;;
+      *.zip)
+        # zip cannot be streamed: its central directory is at the end of the file.
+        if aws s3 cp "$seed_uri" "${seed_staging}/download.zip" \
+          && unzip -oq "${seed_staging}/download.zip" -d "${seed_staging}/extract"; then
+          extracted=true
+        fi
+        ;;
+      esac
+
+      if [[ "$extracted" != "true" ]]; then
+        echo "WARNING: Failed to extract ${seed_archive}, continuing without it..."
+      elif [[ "$(find "${seed_staging}/extract" -mindepth 1 -maxdepth 1 | wc -l)" -ne 1 ]] \
+        || [[ ! -f "${seed_staging}/extract/${seed_mirror_dir}/HEAD" ]] \
+        || [[ ! -d "${seed_staging}/extract/${seed_mirror_dir}/objects" ]]; then
+        echo "WARNING: ${seed_archive} does not contain a single bare git mirror named ${seed_mirror_dir}, continuing without it..."
+      elif ! mv "${seed_staging}/extract/${seed_mirror_dir}" "${BUILDKITE_AGENT_GIT_MIRRORS_PATH}/${seed_mirror_dir}"; then
+        echo "WARNING: Failed to move mirror ${seed_mirror_dir} into place, continuing without it..."
+      else
+        echo "Seeded git mirror ${seed_mirror_dir}"
+      fi
+
+      rm -rf "$seed_staging" || true
+    done
+  else
+    echo No git mirror seed bucket configured.
+  fi
+
   echo Setting ownership of git-mirrors directory to buildkite-agent...
-  chown buildkite-agent: "$BUILDKITE_AGENT_GIT_MIRRORS_PATH"
+  chown -R buildkite-agent: "$BUILDKITE_AGENT_GIT_MIRRORS_PATH"
 else
   echo git-mirrors disabled.
 fi
@@ -432,6 +542,8 @@ fi
 if [[ "${BUILDKITE_ENV_FILE_URL}" != "" ]]; then
   echo "Fetching env file from ${BUILDKITE_ENV_FILE_URL}..."
   /usr/local/bin/bk-fetch.sh "${BUILDKITE_ENV_FILE_URL}" /var/lib/buildkite-agent/env
+  chown buildkite-agent: /var/lib/buildkite-agent/env
+  chmod 0640 /var/lib/buildkite-agent/env
 else
   echo No env file to fetch.
 fi
@@ -439,14 +551,27 @@ fi
 echo Setting ownership of /etc/buildkite-agent/buildkite-agent.cfg to buildkite-agent...
 chown buildkite-agent: /etc/buildkite-agent/buildkite-agent.cfg
 
+# The default login user (and its home) differs by distro: ec2-user on Amazon
+# Linux, ubuntu on Ubuntu. Resolve it at boot rather than hardcoding.
+LOGIN_USER=ec2-user
+if [[ -r /etc/os-release ]]; then
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  if [[ "${ID:-}" == "ubuntu" ]]; then
+    LOGIN_USER=ubuntu
+  fi
+fi
+LOGIN_HOME="$(getent passwd "${LOGIN_USER}" | cut -d: -f6)"
+LOGIN_HOME="${LOGIN_HOME:-/home/${LOGIN_USER}}"
+
 if [[ -n "$BUILDKITE_AUTHORIZED_USERS_URL" ]]; then
   echo Writing authorized user fetching script...
   cat <<-EOF | tee /usr/local/bin/refresh_authorized_keys
 		#!/usr/bin/env bash
 		/usr/local/bin/bk-fetch.sh "$BUILDKITE_AUTHORIZED_USERS_URL" /tmp/authorized_keys
-		mv /tmp/authorized_keys /home/ec2-user/.ssh/authorized_keys
-		chmod 600 /home/ec2-user/.ssh/authorized_keys
-		chown ec2-user: /home/ec2-user/.ssh/authorized_keys
+		mv /tmp/authorized_keys ${LOGIN_HOME}/.ssh/authorized_keys
+		chmod 600 ${LOGIN_HOME}/.ssh/authorized_keys
+		chown ${LOGIN_USER}: ${LOGIN_HOME}/.ssh/authorized_keys
 	EOF
 
   echo Setting ownership of /usr/local/bin/refresh_authorized_keys to root...

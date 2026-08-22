@@ -202,9 +202,11 @@ This will create AMIs for the following platforms in your account's `us-east-1` 
 
 - Linux (64-bit x86)
 - Linux (64-bit Arm)
+- Ubuntu (64-bit x86)
+- Ubuntu (64-bit Arm)
 - Windows (64-bit x86)
 
-If you only need Linux AMIs, invoke the specific targets to skip the Windows build:
+If you only need a subset, invoke the specific targets to skip the rest:
 
 ```bash
 # Linux amd64 (x86_64)
@@ -216,6 +218,12 @@ make packer-base-linux-arm64.output packer-linux-arm64.output
 # Both Linux architectures
 make packer-base-linux-amd64.output packer-linux-amd64.output \
      packer-base-linux-arm64.output packer-linux-arm64.output
+
+# Ubuntu amd64 (x86_64)
+make packer-base-ubuntu2404-amd64.output packer-ubuntu2404-amd64.output
+
+# Ubuntu arm64
+make packer-base-ubuntu2404-arm64.output packer-ubuntu2404-arm64.output
 ```
 
 **Security Note:** Making AMIs public (`AMI_PUBLIC=true`) can expose any secrets accidentally baked into the image. The default private setting helps prevent accidental exposure of sensitive information.
@@ -240,7 +248,12 @@ Buildkite builds and deploys the following AMIs to all our supported regions:
 
 - Amazon Linux 2023 (64-bit x86)
 - Amazon Linux 2023 (64-bit Arm)
+- Ubuntu 24.04 LTS (64-bit x86)
+- Ubuntu 24.04 LTS (64-bit Arm)
 - Windows Server 2022 (64-bit x86)
+
+Amazon Linux 2023 is the default for Linux instances. To run Ubuntu 24.04 LTS
+instead, set the `LinuxDistribution` parameter to `ubuntu2404`.
 
 ### Buildkite Agent
 
@@ -277,9 +290,19 @@ It's currently not possible to disable logging to Cloudwatch from EC2 instances,
 
 ### Collect logs via script
 
-An alternative method to collect the logs is to use the `log-collector` script in the `utils` folder.
-The script will collect CloudWatch logs for the Instance, Lambda function, and AutoScaling activity and package them in a
-zip archive which you can send via email to support@buildkite.com.
+[`utils/log-collector`](utils/log-collector) pulls your stack's CloudWatch logs into a tarball you can send to support.
+
+```bash
+# Lambda and ASG logs
+./utils/log-collector -s my-stack-name
+
+# Add a specific instance's logs too
+./utils/log-collector -s my-stack-name -i i-0123456789abcdef0
+```
+
+You'll need the AWS CLI set up with credentials for the account the stack runs in. It only reads (CloudFormation, Lambda, CloudWatch Logs and Auto Scaling), so a read-only role is fine. Run it with `-h` for the other flags.
+
+If a source has no logs you'll get a `.EMPTY` file instead of a `.log`, and a failed one leaves a `.ERROR` file. Whatever went wrong is also listed in `COLLECTION-ERRORS.txt`.
 
 You can also visit our [Forum](https://forum.buildkite.community) and post a question in the [Elastic CI Stack for AWS](https://forum.buildkite.community/c/elastic-ci-stack-for-aws/) section!
 

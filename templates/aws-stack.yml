@@ -54,6 +54,7 @@ Metadata:
         - BuildkiteAgentTimestampLines
         - BuildkiteAgentExperiments
         - BuildkiteAgentEnableGitMirrors
+        - GitMirrorSeedBucket
         - BuildkiteAgentTracingBackend
         - BuildkiteAgentCancelGracePeriod
         - BuildkiteAgentSignalGracePeriod
@@ -86,6 +87,7 @@ Metadata:
         - ImageId
         - ImageIdParameter
         - InstanceOperatingSystem
+        - LinuxDistribution
         - InstanceTypes
         - CpuCredits
         - NestedVirtualizationEnabled
@@ -145,6 +147,7 @@ Metadata:
         - ScaleOutForWaitingJobs
         - InstanceCreationTimeout
         - ScalerEventSchedulePeriod
+        - ScalerEventScheduleJitter
         - ScalerMinPollInterval
         - ScalerEnableExperimentalElasticCIMode
         - EnableScheduledScaling
@@ -192,18 +195,19 @@ Metadata:
 
 Parameters:
   KeyName:
-    Description: Optional - SSH keypair used to access the Buildkite instances via ec2-user, setting this will enable SSH ingress.
+    Description: Optional - SSH keypair used to access the Buildkite instances via the default login user (ec2-user on Amazon Linux, ubuntu on Ubuntu), setting this will enable SSH ingress.
     Type: String
     Default: ""
 
   BuildkiteAgentRelease:
     Description: >
         Buildkite agent release channel to install.
-        'stable' = production-ready (recommended), 'beta' = pre-release with latest features, 'edge' = bleeding-edge development builds.
+        'stable' = production-ready (recommended), 'oldstable' = most recent release from the major version branch prior to stable, 'beta' = pre-release with latest features, 'edge' = bleeding-edge development builds.
         Use 'stable' unless specific new features are required.
     Type: String
     AllowedValues:
       - stable
+      - oldstable
       - beta
       - edge
     Default: "stable"
@@ -619,7 +623,7 @@ Parameters:
     Default: ""
 
   AuthorizedUsersUrl:
-    Description: Optional - HTTPS or S3 URL to periodically download SSH authorized_keys from, setting this will enable SSH ingress. authorized_keys are applied to ec2-user.
+    Description: Optional - HTTPS or S3 URL to periodically download SSH authorized_keys from, setting this will enable SSH ingress. authorized_keys are applied to the default login user (ec2-user on Amazon Linux, ubuntu on Ubuntu).
     Type: String
     Default: ""
 
@@ -694,6 +698,13 @@ Parameters:
     Type: String
     Default: "1 minute"
 
+  ScalerEventScheduleJitter:
+    Description: >
+      Maximum deterministic delay before scheduled buildkite-agent-scaler invocations poll APIs.
+      Use this to stagger many scaler Lambdas, e.g. '30s'.
+    Type: String
+    Default: "0s"
+
   ScalerMinPollInterval:
     Description: >
       Minimum time between auto-scaler checks for new build jobs (e.g., '30s', '1m').
@@ -762,7 +773,10 @@ Parameters:
     Default: "false"
 
   InstanceCreationTimeout:
-    Description: Optional - Timeout period for Auto Scaling Group Creation Policy.
+    Description: >
+      Optional - Timeout period for Auto Scaling Group Creation Policy. Defaults to PT5M on
+      Linux (PT15M when GitMirrorSeedBucket is set, to allow for downloading and extracting
+      seed archives at boot) and PT10M on Windows.
     Type: String
     Default: ""
 
@@ -886,6 +900,14 @@ Parameters:
       - linux
       - windows
     Default: "linux"
+
+  LinuxDistribution:
+    Type: String
+    Description: The Linux distribution to run on the instances. Only applies when InstanceOperatingSystem is linux.
+    AllowedValues:
+      - amazonlinux2023
+      - ubuntu2404
+    Default: "amazonlinux2023"
 
   ECRAccessPolicy:
     Type: String
@@ -1101,6 +1123,21 @@ Parameters:
       - "true"
       - "false"
     Default: "false"
+
+  GitMirrorSeedBucket:
+    Description: >
+      Optional - Name of an existing S3 bucket containing git mirror seed archives under the
+      git-mirror-seeds/ prefix, one archive (.tar, .tar.gz, or .zip) per repository, named
+      after the agent's mirror directory for that repository. Only used when
+      BuildkiteAgentEnableGitMirrors is true; each archive is extracted into the git-mirrors
+      path at instance boot, before the agent starts. If blank, or archives cannot be fetched,
+      git mirrors start empty as usual. Instances using a custom InstanceRoleARN must be
+      granted access to this bucket separately. When set, the default InstanceCreationTimeout
+      is raised from PT5M to PT15M to allow for seed extraction at boot; set
+      InstanceCreationTimeout explicitly if extracting your archives takes longer.
+      Linux instances only.
+    Type: String
+    Default: ""
 
   EnableDetailedMonitoring:
     Type: String
@@ -1332,6 +1369,12 @@ Conditions:
     HasSecretsBucket:
       !Or [ !Condition CreateSecretsBucket, !Condition UseSpecifiedSecretsBucket ]
 
+    HasGitMirrorSeedBucket:
+      !And
+         - !Equals [ !Ref InstanceOperatingSystem, "linux" ]
+         - !Equals [ !Ref BuildkiteAgentEnableGitMirrors, "true" ]
+         - !Not [ !Equals [ !Ref GitMirrorSeedBucket, "" ] ]
+
     UseSpecifiedAvailabilityZones:
       !Not [ !Equals [ !Join [ "", !Ref AvailabilityZones ], "" ]  ]
 
@@ -1489,6 +1532,17 @@ Conditions:
     UseWindowsAgents:
       !Equals [ !Ref InstanceOperatingSystem, "windows" ]
 
+    UseUbuntu:
+      !And
+        - !Equals [ !Ref InstanceOperatingSystem, "linux" ]
+        - !Equals [ !Ref LinuxDistribution, "ubuntu2404" ]
+
+    # Windows and Ubuntu AMIs root on /dev/sda1; Amazon Linux roots on /dev/xvda.
+    # The root block device mapping must name the AMI's actual root device or the
+    # RootVolumeSize override silently applies to a phantom device.
+    RootDeviceIsSda1:
+      !Or [ { Condition: UseWindowsAgents }, { Condition: UseUbuntu } ]
+
     # Unfortunately, Cloudformation's !Or intrinsic function only accepts
     # between 2 and 10 arguments.  To get around this, we're grouping the
     # instance families in sub-conditionals.  At least this doesn't force us
@@ -1592,7 +1646,7 @@ Mappings:
     arm64: { ARN: 'arn:aws:serverlessrepo:us-east-1:172840064832:applications/buildkite-agent-scaler-arm64' }
 
   # Generated from Makefile via build/mappings.yml
-  AWSRegion2AMI: { linuxamd64: !Ref ImageId, linuxarm64: !Ref ImageId, windows: !Ref ImageId }
+  AWSRegion2AMI: { linuxamd64: !Ref ImageId, linuxarm64: !Ref ImageId, windows: !Ref ImageId, ubuntu2404amd64: !Ref ImageId, ubuntu2404arm64: !Ref ImageId }
 
 Resources:
   Vpc:
@@ -2053,6 +2107,29 @@ Resources:
                 - !Sub "arn:aws:s3:::${ArtifactsBucket}/*"
                 - !Sub "arn:aws:s3:::${ArtifactsBucket}"
             - !Ref "AWS::NoValue"
+          - !If
+            - HasGitMirrorSeedBucket
+            - Sid: GitMirrorSeedBucketRead
+              Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource:
+                - !Sub "arn:aws:s3:::${GitMirrorSeedBucket}/git-mirror-seeds/*"
+            - !Ref "AWS::NoValue"
+          - !If
+            - HasGitMirrorSeedBucket
+            - Sid: GitMirrorSeedBucketList
+              Effect: Allow
+              Action:
+                - s3:ListBucket
+              Resource:
+                - !Sub "arn:aws:s3:::${GitMirrorSeedBucket}"
+              Condition:
+                StringLike:
+                  s3:prefix:
+                    - git-mirror-seeds/
+                    - git-mirror-seeds/*
+            - !Ref "AWS::NoValue"
           - Effect: Allow
             Action:
               - autoscaling:DescribeAutoScalingInstances
@@ -2249,17 +2326,29 @@ Resources:
                   - !Ref 'AWS::Region'
                   - 'windows'
                 - !If
-                  - UsingArmInstances
-                  - !FindInMap
-                    - AWSRegion2AMI
-                    - !Ref 'AWS::Region'
-                    - 'linuxarm64'
-                  - !FindInMap
-                    - AWSRegion2AMI
-                    - !Ref 'AWS::Region'
-                    - 'linuxamd64'
+                  - UseUbuntu
+                  - !If
+                    - UsingArmInstances
+                    - !FindInMap
+                      - AWSRegion2AMI
+                      - !Ref 'AWS::Region'
+                      - 'ubuntu2404arm64'
+                    - !FindInMap
+                      - AWSRegion2AMI
+                      - !Ref 'AWS::Region'
+                      - 'ubuntu2404amd64'
+                  - !If
+                    - UsingArmInstances
+                    - !FindInMap
+                      - AWSRegion2AMI
+                      - !Ref 'AWS::Region'
+                      - 'linuxarm64'
+                    - !FindInMap
+                      - AWSRegion2AMI
+                      - !Ref 'AWS::Region'
+                      - 'linuxamd64'
           BlockDeviceMappings:
-            - DeviceName: !If [ UseDefaultRootVolumeName, !If [ UseWindowsAgents, /dev/sda1, /dev/xvda ], !Ref RootVolumeName ]
+            - DeviceName: !If [ UseDefaultRootVolumeName, !If [ RootDeviceIsSda1, /dev/sda1, /dev/xvda ], !Ref RootVolumeName ]
               Ebs:
                 VolumeSize: !Ref RootVolumeSize
                 VolumeType: !Ref RootVolumeType
@@ -2443,6 +2532,7 @@ Resources:
                   BUILDKITE_AGENT_JOB_VERIFICATION_NO_SIGNATURE_BEHAVIOR="${PipelineSigningVerificationFailureBehavior}" \
                   BUILDKITE_QUEUE="${BuildkiteQueue}" \
                   BUILDKITE_AGENT_ENABLE_GIT_MIRRORS="${BuildkiteAgentEnableGitMirrors}" \
+                  BUILDKITE_GIT_MIRROR_SEED_BUCKET="${LocalGitMirrorSeedBucket}" \
                   BUILDKITE_ELASTIC_BOOTSTRAP_SCRIPT="${BootstrapScriptUrl}" \
                   BUILDKITE_ENV_FILE_URL=${AgentEnvFileUrl} \
                   BUILDKITE_ENABLE_INSTANCE_STORAGE="${EnableInstanceStorage}" \
@@ -2498,6 +2588,10 @@ Resources:
                     - CreatePipelineSigningKMSKey
                     - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${PipelineSigningKMSKey}
                     - !Ref PipelineSigningKMSKeyId
+                  LocalGitMirrorSeedBucket: !If
+                    - HasGitMirrorSeedBucket
+                    - !Ref GitMirrorSeedBucket
+                    - ""
 
   AgentAutoScaleGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -2638,7 +2732,7 @@ Resources:
           Value: !Ref AgentsPerInstance
     CreationPolicy:
       ResourceSignal:
-        Timeout: !If [ UseDefaultInstanceCreationTimeout, !If [ UseWindowsAgents, PT10M, PT5M ], !Ref InstanceCreationTimeout ]
+        Timeout: !If [ UseDefaultInstanceCreationTimeout, !If [ UseWindowsAgents, PT10M, !If [ HasGitMirrorSeedBucket, PT15M, PT5M ] ], !Ref InstanceCreationTimeout ]
         Count: !Ref MinSize
     UpdatePolicy:
       AutoScalingReplacingUpdate:
@@ -2901,7 +2995,7 @@ Resources:
           - AgentScalerARN
           - "x86-64"
           - ARN
-        SemanticVersion: 1.11.2
+        SemanticVersion: 1.12.0
       Parameters:
         BuildkiteAgentTokenParameter: !If [ UseCustomerManagedParameterPath, !Ref BuildkiteAgentTokenParameterStorePath, !Ref BuildkiteAgentTokenParameter ]
         BuildkiteAgentTokenParameterStoreKMSKey: !If [ UseCustomerManagedKeyForParameterStore, !Ref BuildkiteAgentTokenParameterStoreKMSKey, "" ]
@@ -2919,6 +3013,7 @@ Resources:
         ScaleInCooldownPeriod: !Ref ScaleInCooldownPeriod
         ScaleOutCooldownPeriod: !Ref ScaleOutCooldownPeriod
         EventSchedulePeriod: !Ref ScalerEventSchedulePeriod
+        EventScheduleJitter: !Ref ScalerEventScheduleJitter
         MinPollInterval: !Ref ScalerMinPollInterval
         LogRetentionDays: !Ref LogRetentionDays
         EnableElasticCIMode: !Ref ScalerEnableExperimentalElasticCIMode
@@ -2933,7 +3028,7 @@ Resources:
           - AgentScalerARN
           - "arm64"
           - ARN
-        SemanticVersion: 1.11.2
+        SemanticVersion: 1.12.0
       Parameters:
         BuildkiteAgentTokenParameter: !If [ UseCustomerManagedParameterPath, !Ref BuildkiteAgentTokenParameterStorePath, !Ref BuildkiteAgentTokenParameter ]
         BuildkiteAgentTokenParameterStoreKMSKey: !If [ UseCustomerManagedKeyForParameterStore, !Ref BuildkiteAgentTokenParameterStoreKMSKey, "" ]
@@ -2951,6 +3046,7 @@ Resources:
         ScaleInCooldownPeriod: !Ref ScaleInCooldownPeriod
         ScaleOutCooldownPeriod: !Ref ScaleOutCooldownPeriod
         EventSchedulePeriod: !Ref ScalerEventSchedulePeriod
+        EventScheduleJitter: !Ref ScalerEventScheduleJitter
         MinPollInterval: !Ref ScalerMinPollInterval
         LogRetentionDays: !Ref LogRetentionDays
         EnableElasticCIMode: !Ref ScalerEnableExperimentalElasticCIMode

@@ -1,3 +1,10 @@
+# Ubuntu 24.04 variant of goss.yaml, used by the ubuntu2404 test steps.
+# Keep in sync with goss.yaml. Intentional differences from the AL2023 file:
+#   - login user home is /home/ubuntu (not /home/ec2-user)
+#   - amazon-ssm-agent runs as a snap (snap.amazon-ssm-agent.amazon-ssm-agent)
+#   - OpenSSH is socket-activated (ssh.socket): no persistent sshd process, no
+#     sshd.service and no sshd group; only the sshd privsep user exists
+#   - the docker group gid is not constrained to the AL2023 990-995 range
 file:
   /etc/buildkite-agent/buildkite-agent.cfg:
     exists: true
@@ -14,7 +21,7 @@ file:
   /etc/systemd/system/refresh_authorized_keys.timer:
     exists: true
 
-  /home/ec2-user/.ssh/authorized_keys:
+  /home/ubuntu/.ssh/authorized_keys:
     exists: true
     contains: ["!packer"]
 
@@ -50,7 +57,7 @@ port:
     - "::"
 
 service:
-  amazon-ssm-agent:
+  snap.amazon-ssm-agent.amazon-ssm-agent:
     enabled: true
     running: true
 
@@ -59,10 +66,6 @@ service:
     running: true
 
   lifecycled:
-    enabled: true
-    running: true
-
-  sshd:
     enabled: true
     running: true
 
@@ -83,15 +86,6 @@ user:
 
   sshd:
     exists: true
-    uid: 74
-    gid: 74
-    groups:
-    - sshd
-    home: /usr/share/empty.sshd
-    shell:
-      or:
-      - /sbin/nologin
-      - /usr/sbin/nologin
 
 group:
   buildkite-agent:
@@ -101,10 +95,6 @@ group:
   docker:
     exists: true
 
-  sshd:
-    exists: true
-    gid: 74
-
 process:
   buildkite-agent:
     running: true
@@ -112,10 +102,23 @@ process:
   lifecycled:
     running: true
 
-  sshd:
-    running: true
-
 command:
+  # Ubuntu 24.04 ships OpenSSH as a socket-activated unit (ssh.socket); there is
+  # no persistent sshd process and no sshd.service like on Amazon Linux. Assert
+  # the socket is enabled at boot and active (the port 22 checks cover reach).
+  systemctl is-enabled ssh.socket:
+    exit-status: 0
+
+  systemctl is-active ssh.socket:
+    exit-status: 0
+
+  # /tmp is a tmpfs by default: tmp.mount is enabled at build time (mirroring
+  # AL2023), and MountTmpfsAtTmp defaults to true.
+  findmnt --noheadings --output FSTYPE /tmp:
+    exit-status: 0
+    stdout:
+    - tmpfs
+
   aws --version:
     exit-status: 0
 
@@ -129,6 +132,9 @@ command:
     exit-status: 0
 
   git-lfs --version:
+    exit-status: 0
+
+  session-manager-plugin --version:
     exit-status: 0
 
   command -v lsof:
@@ -215,7 +221,3 @@ command:
     timeout: 30000
     stdout:
     - x86_64
-
-  ## This allows us to support a range of group ids for the docker group, 990-995
-  'getent group docker | cut -d: -f3 | grep -E "^99[0-5]$"':
-    exit-status: 0
