@@ -724,6 +724,7 @@ else
   echo "Skipping cfn-signal (not deployed by CloudFormation)"
 fi
 
+# Keep these in step with agra: docker/postgres/Dockerfile, docker/app/Dockerfile and docker-compose.yml.
 echo "warming docker images..."
 
 function docker_pull_with_retry() {
@@ -734,8 +735,8 @@ function docker_pull_with_retry() {
   done
 }
 
-docker_pull_with_retry 'postgres:18.1'
-docker_pull_with_retry 'ruby:4.0.6-alpine3.23'
+docker_pull_with_retry 'postgres:18.6'
+docker_pull_with_retry 'ruby:4.0.6-alpine3.24'
 docker_pull_with_retry 'docker.elastic.co/elasticsearch/elasticsearch:8.19.13'
 docker_pull_with_retry 'redis:8'
 
