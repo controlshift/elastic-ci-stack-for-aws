@@ -167,6 +167,12 @@ build {
 
   provisioner "shell" {
     environment_vars = ["OS_DISTRO=${var.os_distro}"]
+    script           = "scripts/configure-cloudwatch-agent.sh"
+    remote_folder    = "/var/tmp"
+  }
+
+  provisioner "shell" {
+    environment_vars = ["OS_DISTRO=${var.os_distro}"]
     script           = "scripts/install-buildkite-agent.sh"
     remote_folder    = "/var/tmp"
   }

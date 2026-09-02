@@ -184,6 +184,13 @@ build {
     remote_folder    = "/var/tmp"
   }
 
+  # CloudWatch agent (metrics only; see stack/scripts/configure-cloudwatch-agent.sh)
+  provisioner "shell" {
+    environment_vars = ["OS_DISTRO=${var.os_distro}"]
+    script           = "scripts/install-cloudwatch-agent.sh"
+    remote_folder    = "/var/tmp"
+  }
+
   # Session Manager plugin
   provisioner "shell" {
     environment_vars = ["OS_DISTRO=${var.os_distro}"]
