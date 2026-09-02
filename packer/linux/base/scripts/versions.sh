@@ -3,11 +3,11 @@
 # This file is sourced by installation scripts
 
 # Core Tools
-export AWS_CLI_LINUX_VERSION="2.35.13"
+export AWS_CLI_LINUX_VERSION="2.36.37"
 export SESSION_MANAGER_PLUGIN_VERSION="1.2.835.0"
 
 # Development Tools
-export GIT_LFS_VERSION="3.7.1"
+export GIT_LFS_VERSION="3.8.0"
 export GOSS_VERSION="v0.4.10"
 
 # Container Tools
