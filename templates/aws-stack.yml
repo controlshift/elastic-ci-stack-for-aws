@@ -77,6 +77,7 @@ Metadata:
         - VpcId
         - Subnets
         - AvailabilityZones
+        - AdditionalAvailabilityZones
         - SecurityGroupIds
         - AssociatePublicIpAddress
         - EnableVpcEndpoints
@@ -652,6 +653,14 @@ Parameters:
   AvailabilityZones:
     Type: CommaDelimitedList
     Description: Optional - Comma separated list of AZs that subnets are created in (if Subnets parameter is not specified).
+    Default: ""
+
+  AdditionalAvailabilityZones:
+    Type: CommaDelimitedList
+    Description: >
+      Optional - Exactly three more AZs to create subnets in, so the auto scaling group can draw spot capacity from
+      more pools. Only used when the stack creates its own VPC. The VPC endpoints stay in the first two subnets; the
+      extra subnets reach them across AZs.
     Default: ""
 
   InstanceTypes:
@@ -1390,6 +1399,11 @@ Conditions:
     UseSpecifiedAvailabilityZones:
       !Not [ !Equals [ !Join [ "", !Ref AvailabilityZones ], "" ]  ]
 
+    CreateAdditionalSubnets:
+      !And
+        - !Condition CreateVpcResources
+        - !Not [ !Equals [ !Join [ "", !Ref AdditionalAvailabilityZones ], "" ] ]
+
     UseArtifactsBucket:
       !Not [ !Equals [ !Ref ArtifactsBucket, "" ] ]
     IsArtifactsBucketRegionEmpty:
@@ -1722,6 +1736,45 @@ Resources:
         - Key: Name
           Value: !Ref 'AWS::StackName'
 
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    Condition: CreateAdditionalSubnets
+    DependsOn:
+      - GatewayAttachment
+    Properties:
+      AvailabilityZone: !Select [ 0, !Ref AdditionalAvailabilityZones ]
+      CidrBlock: 10.0.3.0/24
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+
+  Subnet3:
+    Type: AWS::EC2::Subnet
+    Condition: CreateAdditionalSubnets
+    DependsOn:
+      - GatewayAttachment
+    Properties:
+      AvailabilityZone: !Select [ 1, !Ref AdditionalAvailabilityZones ]
+      CidrBlock: 10.0.4.0/24
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+
+  Subnet4:
+    Type: AWS::EC2::Subnet
+    Condition: CreateAdditionalSubnets
+    DependsOn:
+      - GatewayAttachment
+    Properties:
+      AvailabilityZone: !Select [ 2, !Ref AdditionalAvailabilityZones ]
+      CidrBlock: 10.0.5.0/24
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+
   Routes:
     Type: AWS::EC2::RouteTable
     Condition: CreateVpcResources
@@ -1755,6 +1808,27 @@ Resources:
       SubnetId: !Ref Subnet1
       RouteTableId: !Ref Routes
 
+  Subnet2Routes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: CreateAdditionalSubnets
+    Properties:
+      SubnetId: !Ref Subnet2
+      RouteTableId: !Ref Routes
+
+  Subnet3Routes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: CreateAdditionalSubnets
+    Properties:
+      SubnetId: !Ref Subnet3
+      RouteTableId: !Ref Routes
+
+  Subnet4Routes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: CreateAdditionalSubnets
+    Properties:
+      SubnetId: !Ref Subnet4
+      RouteTableId: !Ref Routes
+
   # A resource that depends on the leaf nodes of the VPC configuration so that
   # a strict ordering can be established on teardown.
   VpcComplete:
@@ -1767,6 +1841,9 @@ Resources:
       # By referencing these resources, CloudFormation creates implicit dependencies
       Subnet0RouteCheck: !If [ CreateVpcResources, !Ref Subnet0Routes, !Ref "AWS::NoValue" ]
       Subnet1RouteCheck: !If [ CreateVpcResources, !Ref Subnet1Routes, !Ref "AWS::NoValue" ]
+      Subnet2RouteCheck: !If [ CreateAdditionalSubnets, !Ref Subnet2Routes, !Ref "AWS::NoValue" ]
+      Subnet3RouteCheck: !If [ CreateAdditionalSubnets, !Ref Subnet3Routes, !Ref "AWS::NoValue" ]
+      Subnet4RouteCheck: !If [ CreateAdditionalSubnets, !Ref Subnet4Routes, !Ref "AWS::NoValue" ]
       RouteDefaultCheck: !If [ CreateVpcResources, !Ref RouteDefault, !Ref "AWS::NoValue" ]
 
   VpcEndpointsSecurityGroup:
@@ -2611,7 +2688,14 @@ Resources:
     DependsOn:
       - VpcComplete
     Properties:
-      VPCZoneIdentifier: !If [ "CreateVpcResources", [ !Ref Subnet0, !Ref Subnet1 ], !Ref Subnets ]
+      VPCZoneIdentifier:
+        !If
+          - "CreateVpcResources"
+          - !If
+              - "CreateAdditionalSubnets"
+              - [ !Ref Subnet0, !Ref Subnet1, !Ref Subnet2, !Ref Subnet3, !Ref Subnet4 ]
+              - [ !Ref Subnet0, !Ref Subnet1 ]
+          - !Ref Subnets
       MixedInstancesPolicy:
         InstancesDistribution:
           OnDemandBaseCapacity: !Ref OnDemandBaseCapacity
