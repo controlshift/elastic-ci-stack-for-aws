@@ -51,13 +51,12 @@ Metadata:
         Parameters:
         - BuildkiteAgentRelease
         - BuildkiteAgentTags
-        - BuildkiteAgentTimestampLines
         - BuildkiteAgentExperiments
         - BuildkiteAgentEnableGitMirrors
         - GitMirrorSeedBucket
-        - BuildkiteAgentTracingBackend
-        - BuildkiteAgentCancelGracePeriod
-        - BuildkiteAgentSignalGracePeriod
+        - BuildkiteAgentOpenTelemetryTracing
+        - BuildkiteAgentCancelSignalTimeout
+        - BuildkiteAgentCancelCleanupTimeout
         - BuildkiteTerminateInstanceAfterJob
         - BuildkiteAgentDisconnectAfterUptime
         - BuildkiteTerminateInstanceOnDiskFull
@@ -149,6 +148,7 @@ Metadata:
         - MaxDanglingInstancesToCheck
         - ScaleOutForWaitingJobs
         - InstanceCreationTimeout
+        - WindowsLaunchTimeout
         - ScalerEventSchedulePeriod
         - ScalerEventScheduleJitter
         - ScalerMinPollInterval
@@ -204,13 +204,12 @@ Parameters:
 
   BuildkiteAgentRelease:
     Description: >
-        Buildkite agent release channel to install.
-        'stable' = production-ready (recommended), 'oldstable' = most recent release from the major version branch prior to stable, 'beta' = pre-release with latest features, 'edge' = bleeding-edge development builds.
+        Buildkite Agent v4 release channel to install.
+        'stable' = production-ready (recommended), 'beta' = pre-release with latest features, 'edge' = bleeding-edge development builds.
         Use 'stable' unless specific new features are required.
     Type: String
     AllowedValues:
       - stable
-      - oldstable
       - beta
       - edge
     Default: "stable"
@@ -255,14 +254,6 @@ Parameters:
       Use these tags in pipeline steps with 'agents: { environment: production }'.
     Type: String
     Default: ""
-
-  BuildkiteAgentTimestampLines:
-    Description: Set to true to prepend timestamps to every line of output.
-    Type: String
-    AllowedValues:
-      - "true"
-      - "false"
-    Default: "false"
 
   BuildkiteAgentExperiments:
     Description: >
@@ -395,14 +386,13 @@ Parameters:
       - "false"
     Default: "false"
 
-  BuildkiteAgentTracingBackend:
-    Description: Optional - The tracing backend to use for CI tracing. See https://buildkite.com/docs/agent/v3/tracing.
+  BuildkiteAgentOpenTelemetryTracing:
+    Description: Enable OpenTelemetry tracing for the Buildkite Agent. See https://buildkite.com/docs/agent/v3/tracing.
     Type: String
     AllowedValues:
-      - ""
-      - "datadog"
-      - "opentelemetry"
-    Default: ""
+      - "true"
+      - "false"
+    Default: "false"
 
   BuildkiteAgentSigningKeySSMParameter:
     Description: Existing SSM Parameter Store path to a JSON Web Key Set (JWKS) containing a key to sign jobs with.
@@ -423,19 +413,23 @@ Parameters:
     AllowedPattern: "^$|^/[a-zA-Z0-9_.\\-/]+$"
     ConstraintDescription: "Expects a leading forward slash"
 
-  BuildkiteAgentCancelGracePeriod:
-    Description: The number of seconds a canceled or timed out job is given to gracefully terminate and upload its artifacts.
-    Type: Number
-    Default: 60
-    MinValue: 1
-
-  BuildkiteAgentSignalGracePeriod:
+  BuildkiteAgentCancelSignalTimeout:
     Description: >
-        The number of seconds given to a subprocess to handle being sent `cancel-signal`.
-        After this period has elapsed, SIGKILL will be sent.
-    Type: Number
-    Default: -1
-    MinValue: -1
+        How long a subprocess has to handle the cancel signal before the Buildkite Agent sends SIGKILL.
+        Accepts duration strings such as '30s' and '1m30s'.
+    Type: String
+    Default: "10s"
+    AllowedPattern: "^(0|([0-9]+(\\.[0-9]+)?(ns|us|ms|s|m|h))+)$"
+    ConstraintDescription: "Must be a non-negative duration such as '30s' or '1m30s'."
+
+  BuildkiteAgentCancelCleanupTimeout:
+    Description: >
+        Extra time for a stopping Buildkite Agent to upload logs and artifacts after the job process exits or is killed.
+        Accepts duration strings such as '5s' and '1m30s'.
+    Type: String
+    Default: "5s"
+    AllowedPattern: "^(0|([0-9]+(\\.[0-9]+)?(ns|us|ms|s|m|h))+)$"
+    ConstraintDescription: "Must be a non-negative duration such as '5s' or '1m30s'."
 
   BuildkiteTerminateInstanceAfterJob:
     Description: Set to 'true' to terminate the instance after a job has completed.
@@ -631,6 +625,8 @@ Parameters:
         Supported URI schemes: S3 object URI (s3://bucket/key), SSM parameter path (ssm:/path/to/param),
         HTTPS URL (https://example.com/script.sh), or local file path (file:///path/to/script).
         These variables configure agent behavior like proxy settings or debugging options.
+        Before upgrading to stack v7, review this file for Agent v3 options that Agent v4 removed or renamed.
+        See https://buildkite.com/docs/agent/v3-v4-upgrade-guide.
         For build environment variables, use pipeline 'env' configuration instead.
     Type: String
     Default: ""
@@ -797,9 +793,19 @@ Parameters:
     Description: >
       Optional - Timeout period for Auto Scaling Group Creation Policy. Defaults to PT5M on
       Linux (PT15M when GitMirrorSeedBucket is set, to allow for downloading and extracting
-      seed archives at boot) and PT10M on Windows.
+      seed archives at boot) and PT30M on Windows.
     Type: String
     Default: ""
+
+  WindowsLaunchTimeout:
+    Description: >
+      Seconds a Windows instance may wait for bootstrap and agent service startup before
+      Auto Scaling abandons the launch. Includes Windows setup time. Does not affect Linux
+      or change InstanceCreationTimeout. Requires the matching release's Windows AMI.
+    Type: Number
+    Default: 900
+    MinValue: 30
+    MaxValue: 7200
 
   RootVolumeSize:
     Description: Size of each instance's root EBS volume (in GB).
@@ -1615,6 +1621,8 @@ Conditions:
           - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "r8gb" ]
           - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "r8gd" ]
           - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "r8gn" ]
+          - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "r9g" ]
+          - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "r9gd" ]
         - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "t4g" ]
         - !Or
           - !Equals [ !Select [ 0, !Split [ ".", !Ref InstanceTypes ] ], "x2gd" ]
@@ -2232,6 +2240,14 @@ Resources:
               - autoscaling:SetInstanceHealth
               - autoscaling:TerminateInstanceInAutoScalingGroup
             Resource: !Sub arn:${AWS::Partition}:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AWS::StackName}-AgentAutoScaleGroup-*
+          - !If
+            - UseWindowsAgents
+            - Sid: CompleteWindowsLaunch
+              Effect: Allow
+              Action:
+                - autoscaling:CompleteLifecycleAction
+              Resource: !Sub arn:${AWS::Partition}:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AWS::StackName}-AgentAutoScaleGroup-*
+            - !Ref "AWS::NoValue"
           - Sid: Logging
             Effect: Allow
             Action:
@@ -2491,11 +2507,12 @@ Resources:
                   $Env:DOCKER_USERNS_REMAP="${EnableDockerUserNamespaceRemap}"
                   $Env:DOCKER_EXPERIMENTAL="${EnableDockerExperimental}"
                   $Env:DOCKER_NETWORKING_PROTOCOL="${DockerNetworkingProtocol}"
-                  powershell -file C:\buildkite-agent\bin\bk-configure-docker.ps1 >> C:\buildkite-agent\elastic-stack.log
 
                   $Env:BUILDKITE_STACK_NAME="${AWS::StackName}"
                   $Env:BUILDKITE_STACK_VERSION="%v"
                   $Env:BUILDKITE_STACK_DEPLOYED_BY="cloudformation"
+                  $Env:BUILDKITE_LAUNCH_HOOK_NAME="buildkite-agent-launch"
+                  $Env:BUILDKITE_LAUNCH_TIMEOUT="${WindowsLaunchTimeout}"
                   $Env:BUILDKITE_SCALE_IN_IDLE_PERIOD="${ScaleInIdlePeriod}"
                   $Env:BUILDKITE_SECRETS_BUCKET="${LocalSecretsBucket}"
                   $Env:BUILDKITE_SECRETS_BUCKET_REGION="${LocalSecretsBucketRegion}"
@@ -2507,9 +2524,10 @@ Resources:
                   $Env:BUILDKITE_AGENTS_PER_INSTANCE="${AgentsPerInstance}"
                   $Env:BUILDKITE_AGENT_ENDPOINT="${AgentEndpoint}"
                   $Env:BUILDKITE_AGENT_TAGS="${BuildkiteAgentTags}"
-                  $Env:BUILDKITE_AGENT_TIMESTAMP_LINES="${BuildkiteAgentTimestampLines}"
                   $Env:BUILDKITE_AGENT_EXPERIMENTS="${BuildkiteAgentExperiments}"
-                  $Env:BUILDKITE_AGENT_TRACING_BACKEND="${BuildkiteAgentTracingBackend}"
+                  $Env:BUILDKITE_AGENT_OPENTELEMETRY_TRACING="${BuildkiteAgentOpenTelemetryTracing}"
+                  $Env:BUILDKITE_AGENT_CANCEL_SIGNAL_TIMEOUT="${BuildkiteAgentCancelSignalTimeout}"
+                  $Env:BUILDKITE_AGENT_CANCEL_CLEANUP_TIMEOUT="${BuildkiteAgentCancelCleanupTimeout}"
                   $Env:BUILDKITE_AGENT_SIGNING_KEY_PATH="${BuildkiteAgentSigningKeySSMParameter}"
                   $Env:BUILDKITE_AGENT_SIGNING_KEY_ID="${BuildkiteAgentSigningKeyID}"
                   $Env:BUILDKITE_AGENT_VERIFICATION_KEY_PATH="${BuildkiteAgentVerificationKeySSMParameter}"
@@ -2536,7 +2554,16 @@ Resources:
                   $Env:AWS_REGION="${AWS::Region}"
                   $Env:ENABLE_EC2_LOG_RETENTION_POLICY="${EnableEC2LogRetentionPolicy}"
                   $Env:EC2_LOG_RETENTION_DAYS="${EC2LogRetentionDays}"
-                  powershell -file C:\buildkite-agent\bin\bk-install-elastic-stack.ps1 >> C:\buildkite-agent\elastic-stack.log
+                  & {
+                    # Do not wait until the end of bootstrap to start collecting failure logs.
+                    try {
+                      Start-Service AmazonCloudWatchAgent -ErrorAction Stop
+                    } catch {
+                      Write-Warning "Could not start CloudWatch logging before bootstrap: $_"
+                    }
+                    powershell -file C:\buildkite-agent\bin\bk-install-elastic-stack.ps1
+                  } *>&1 | Out-File -FilePath C:\buildkite-agent\elastic-stack.log -Append -Encoding utf8
+                  exit $LASTEXITCODE
                   </powershell>
                 - LocalSecretsBucket: !If
                     - CreateSecretsBucket
@@ -2609,15 +2636,14 @@ Resources:
                   BUILDKITE_AGENTS_PER_INSTANCE="${AgentsPerInstance}" \
                   BUILDKITE_AGENT_ENDPOINT="${AgentEndpoint}" \
                   BUILDKITE_AGENT_TAGS="${BuildkiteAgentTags}" \
-                  BUILDKITE_AGENT_TIMESTAMP_LINES="${BuildkiteAgentTimestampLines}" \
                   BUILDKITE_AGENT_EXPERIMENTS="${BuildkiteAgentExperiments}" \
-                  BUILDKITE_AGENT_TRACING_BACKEND="${BuildkiteAgentTracingBackend}" \
+                  BUILDKITE_AGENT_OPENTELEMETRY_TRACING="${BuildkiteAgentOpenTelemetryTracing}" \
+                  BUILDKITE_AGENT_CANCEL_SIGNAL_TIMEOUT="${BuildkiteAgentCancelSignalTimeout}" \
+                  BUILDKITE_AGENT_CANCEL_CLEANUP_TIMEOUT="${BuildkiteAgentCancelCleanupTimeout}" \
                   BUILDKITE_AGENT_SIGNING_KEY_PATH="${BuildkiteAgentSigningKeySSMParameter}" \
                   BUILDKITE_AGENT_SIGNING_KEY_ID="${BuildkiteAgentSigningKeyID}" \
                   BUILDKITE_AGENT_VERIFICATION_KEY_PATH="${BuildkiteAgentVerificationKeySSMParameter}" \
                   BUILDKITE_AGENT_RELEASE="${BuildkiteAgentRelease}" \
-                  BUILDKITE_AGENT_CANCEL_GRACE_PERIOD="${BuildkiteAgentCancelGracePeriod}" \
-                  BUILDKITE_AGENT_SIGNAL_GRACE_PERIOD_SECONDS="${BuildkiteAgentSignalGracePeriod}" \
                   BUILDKITE_AGENT_SIGNING_KMS_KEY="${PipelineSigningKMSKey}" \
                   BUILDKITE_AGENT_JOB_VERIFICATION_NO_SIGNATURE_BEHAVIOR="${PipelineSigningVerificationFailureBehavior}" \
                   BUILDKITE_QUEUE="${BuildkiteQueue}" \
@@ -2696,6 +2722,13 @@ Resources:
               - [ !Ref Subnet0, !Ref Subnet1, !Ref Subnet2, !Ref Subnet3, !Ref Subnet4 ]
               - [ !Ref Subnet0, !Ref Subnet1 ]
           - !Ref Subnets
+      LifecycleHookSpecificationList: !If
+        - UseWindowsAgents
+        - - LifecycleHookName: buildkite-agent-launch
+            LifecycleTransition: autoscaling:EC2_INSTANCE_LAUNCHING
+            DefaultResult: ABANDON
+            HeartbeatTimeout: !Ref WindowsLaunchTimeout
+        - !Ref "AWS::NoValue"
       MixedInstancesPolicy:
         InstancesDistribution:
           OnDemandBaseCapacity: !Ref OnDemandBaseCapacity
@@ -2829,7 +2862,7 @@ Resources:
           Value: !Ref AgentsPerInstance
     CreationPolicy:
       ResourceSignal:
-        Timeout: !If [ UseDefaultInstanceCreationTimeout, !If [ UseWindowsAgents, PT10M, !If [ HasGitMirrorSeedBucket, PT15M, PT5M ] ], !Ref InstanceCreationTimeout ]
+        Timeout: !If [ UseDefaultInstanceCreationTimeout, !If [ UseWindowsAgents, PT30M, !If [ HasGitMirrorSeedBucket, PT15M, PT5M ] ], !Ref InstanceCreationTimeout ]
         Count: !Ref MinSize
     UpdatePolicy:
       AutoScalingReplacingUpdate:
@@ -3038,8 +3071,12 @@ Resources:
                   ],
                   DocumentName="AWS-RunShellScript",
                   Comment=f"Stopping BK agents in {stack_name}",
+                  # An instance with no running agent must not fail the command:
+                  # with the default MaxErrors of 0, one failure cancels every
+                  # invocation not yet started, leaving those agents running.
+                  MaxErrors="100%",
                   Parameters={
-                      "commands": ["sudo kill -s SIGTERM $(/bin/pidof buildkite-agent)"]
+                      "commands": ["sudo pkill -TERM -x buildkite-agent || true"]
                   }
               )
               logger.info(f"SSM command response: {response}")
@@ -3092,7 +3129,7 @@ Resources:
           - AgentScalerARN
           - "x86-64"
           - ARN
-        SemanticVersion: 1.13.0
+        SemanticVersion: 1.16.1
       Parameters:
         BuildkiteAgentTokenParameter: !If [ UseCustomerManagedParameterPath, !Ref BuildkiteAgentTokenParameterStorePath, !Ref BuildkiteAgentTokenParameter ]
         BuildkiteAgentTokenParameterStoreKMSKey: !If [ UseCustomerManagedKeyForParameterStore, !Ref BuildkiteAgentTokenParameterStoreKMSKey, "" ]
@@ -3127,7 +3164,7 @@ Resources:
           - AgentScalerARN
           - "arm64"
           - ARN
-        SemanticVersion: 1.13.0
+        SemanticVersion: 1.16.1
       Parameters:
         BuildkiteAgentTokenParameter: !If [ UseCustomerManagedParameterPath, !Ref BuildkiteAgentTokenParameterStorePath, !Ref BuildkiteAgentTokenParameter ]
         BuildkiteAgentTokenParameterStoreKMSKey: !If [ UseCustomerManagedKeyForParameterStore, !Ref BuildkiteAgentTokenParameterStoreKMSKey, "" ]

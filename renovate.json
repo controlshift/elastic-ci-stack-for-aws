@@ -6,7 +6,21 @@
   "schedule": [
     "monthly"
   ],
+  "git-submodules": {
+    "enabled": true
+  },
   "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^\\.buildkite/steps/lint\\.sh$"
+      ],
+      "matchStrings": [
+        "koalaman/shellcheck:(?<currentValue>v\\d+\\.\\d+\\.\\d+)@(?<currentDigest>sha256:[a-f0-9]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "koalaman/shellcheck"
+    },
     {
       "customType": "regex",
       "fileMatch": [
@@ -238,6 +252,18 @@
       "matchManagers": ["custom.regex"],
       "ignoreUnstable": true,
       "respectLatest": true
+    },
+    {
+      "matchManagers": ["git-submodules"],
+      "matchDepNames": ["plugins/secrets"],
+      "groupName": "s3-secrets",
+      "separateMajorMinor": false
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchDepNames": ["buildkite/elastic-ci-stack-s3-secrets-hooks"],
+      "groupName": "s3-secrets",
+      "separateMajorMinor": false
     }
   ]
 }

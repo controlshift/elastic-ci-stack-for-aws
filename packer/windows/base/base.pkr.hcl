@@ -14,7 +14,7 @@ variable "arch" {
 
 variable "instance_type" {
   type    = string
-  default = "m7i.xlarge"
+  default = "c8a.xlarge"
 }
 
 variable "region" {
@@ -44,6 +44,12 @@ variable "ami_users" {
   default     = []
 }
 
+variable "iam_instance_profile" {
+  type        = string
+  description = "Optional instance profile for the Windows image build instance."
+  default     = ""
+}
+
 # Latest Windows Server 2022 AMI
 data "amazon-ami" "windows-server-2022" {
   filters = {
@@ -68,8 +74,10 @@ source "amazon-ebs" "buildkite-base" {
   winrm_insecure  = true
   winrm_use_ssl   = true
   winrm_port      = 5986
-  winrm_timeout   = "60m"
+  winrm_timeout   = "20m"
   winrm_username  = "Administrator"
+
+  iam_instance_profile = var.iam_instance_profile
 
   launch_block_device_mappings {
     volume_type           = "gp3"
@@ -78,8 +86,19 @@ source "amazon-ebs" "buildkite-base" {
     delete_on_termination = true
   }
 
+  # The amazon plugin also copies run_tags to the AMI and its snapshots. `tags`
+  # below overwrites Name, BuildNumber and Purpose there, but ManagedBy stays,
+  # so never select builders by ManagedBy alone.
+  run_tags = {
+    Name        = "Packer Builder" // cleanup.sh and cleanup-packer.sh match builders on this
+    ManagedBy   = "elastic-ci-stack-for-aws"
+    Purpose     = "disposable-ci"
+    BuildNumber = var.build_number
+  }
+
   tags = {
     Name        = "buildkite-base-windows"
+    Purpose     = "ami"
     OSVersion   = "Windows Server 2022"
     BuildNumber = var.build_number
     IsReleased  = var.is_released
@@ -101,16 +120,23 @@ build {
     source      = "scripts/versions.ps1"
   }
 
+  provisioner "file" {
+    destination = "C:/Windows/Temp/"
+    source      = "../../trust"
+  }
+
   provisioner "powershell" {
     scripts = [
+      "scripts/remediate-trust.ps1",
       "scripts/install-utils.ps1",
       "scripts/install-lifecycled.ps1",
       "scripts/enable-containers.ps1"
     ]
   }
 
+  # Install Containers once, then let Packer initiate and wait for the reboot.
   provisioner "windows-restart" {
-    restart_command = "C:/packer-temp/scripts/enable-containers.ps1"
+    restart_timeout = "20m"
     timeout         = "20m"
   }
 
@@ -119,6 +145,11 @@ build {
       "scripts/install-docker.ps1",
       "scripts/install-session-manager-plugin.ps1"
     ]
+  }
+
+  # Independently verify installation before allowing this base to be published.
+  provisioner "powershell" {
+    script = "scripts/validate-docker.ps1"
   }
 
   # Cleanup and sysprep

@@ -1,11 +1,11 @@
 # Pipeline: https://buildkite.com/buildkite/elastic-stack-for-aws-ami-cleaner
+# Set DRY_RUN to preview; leave it unset to delete. See .buildkite/README.md.
 steps:
   - name: ":broom: Delete AMIs ({{matrix}})"
     command: .buildkite/steps/clean-old-amis
     agents:
       queue: "oss-deploy"
     env:
-      # DRY_RUN: true
       AWS_REGION: "{{matrix}}"
     # list of regions should match .buildkite/steps/copy.sh
     matrix:
@@ -30,15 +30,32 @@ steps:
       # - "me-south-1" – me-south-1 and me-central-1 are now (March 24, 2026) affected by military conflicts in the Middle East. me-south-1 is affected by the drone attack – https://web.archive.org/web/20260324134102/https://www.heise.de/en/news/AWS-New-disruptions-at-data-centers-in-Bahrain-after-drone-activity-11222079.html. Check https://status.aws.amazon.com/rss/multipleservices-me-south-1.rss for the current status.
       - "sa-east-1"
     plugins:
-      - aws-assume-role-with-web-identity#v1.7.0:
+      - aws-assume-role-with-web-identity#v1.8.1:
           role-arn: arn:aws:iam::172840064832:role/pipeline-buildkite-elastic-stack-for-aws-ami-cleaner
           session-tags:
             - organization_slug
             - organization_id
             - pipeline_slug
             - build_branch
-      - docker-compose#v5.12.1:
+      - docker-compose#v5.16.0:
           run: ruby
           config: .buildkite/docker-compose.yml
           propagate-aws-auth-tokens: true
           mount-buildkite-agent: true
+
+  # Runs on the host: Bash 4+, AWS CLI v2 and GNU date required.
+  - name: ":broom: Clean up test stacks and Packer builders (us-east-1)"
+    command: .buildkite/steps/cleanup.sh
+    timeout_in_minutes: 150
+    agents:
+      queue: "oss-deploy"
+    env:
+      AWS_REGION: "us-east-1"
+    plugins:
+      - aws-assume-role-with-web-identity#v1.8.1:
+          role-arn: arn:aws:iam::172840064832:role/pipeline-buildkite-elastic-stack-for-aws-ami-cleaner
+          session-tags:
+            - organization_slug
+            - organization_id
+            - pipeline_slug
+            - build_branch

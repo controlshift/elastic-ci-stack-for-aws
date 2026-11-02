@@ -1,5 +1,8 @@
 <h1><img alt="Elastic CI Stack for AWS" src="images/banner.png?raw=true"></h1>
 
+> [!WARNING]
+> Elastic CI Stack for AWS v7 is now available. New features will only be developed and released for v7, and will not be backported to v6. Security fixes will continue to be backported to v6. See the [v6 to v7 upgrade guide](https://buildkite.com/docs/agent/self-hosted/aws/elastic-ci-stack/ec2-linux-and-windows/v6-v7-upgrade-guide) for details on migrating.
+
 [![Build status](https://badge.buildkite.com/d178ab942e2f606a83e79847704648437d82a9c5fdb434b7ae.svg?branch=main)](https://buildkite.com/buildkite-aws-stack/buildkite-aws-stack/builds/latest?branch=main)
 
 ## Buildkite Elastic CI Stack for AWS
@@ -95,6 +98,24 @@ To enable resource limits with custom values, include these parameters in your C
 - Resource limits are disabled by default
 - Values can be specified as percentages or absolute values (for memory-related parameters)
 
+## Agent watchdog
+
+Buildkite marks agents that stop sending heartbeats as lost and fails their running jobs. On Linux, a watchdog powers off the instance after three minutes without an agent health notification. The Auto Scaling group replaces it, maintaining desired capacity.
+
+Agent service failures and out-of-memory kills within the service also trigger instance replacement, interrupting all jobs on that instance. Normal graceful shutdown lets running jobs finish.
+
+## Windows launch protection
+
+Windows instances remain in Auto Scaling's `Pending:Wait` state until bootstrap finishes configuration, starts the required services, and successfully starts the Buildkite Agent service. Bootstrap then completes the launch hook with `CONTINUE`. This checks service startup, not agent registration with the Buildkite API.
+
+`WindowsLaunchTimeout` defaults to 900 seconds (15 minutes). If bootstrap never runs, hangs, or cannot complete the launch hook, Auto Scaling abandons the launch when the hook times out. Bootstrap also attempts to abandon failed launches explicitly. Use the template and Windows AMI from the same release; older Windows AMIs do not complete this hook.
+
+The Windows CloudFormation creation timeout defaults to 30 minutes and can be overridden with `InstanceCreationTimeout`. A successful launch sends a CloudFormation success signal. An individual bootstrap failure does not send a failure signal, allowing a replacement to succeed while CloudFormation is still waiting. Persistent failures cause stack creation to fail through its timeout. Linux signaling and timeout defaults are unchanged.
+
+Bootstrap records configuration status in `C:\buildkite-agent\elastic-stack-bootstrap-status`. A repeated invocation skips completed configuration and rejects incomplete configuration rather than resuming it. This is not a reboot recovery mechanism: the existing NSSM exit hook requests instance termination when the agent exits or its service is stopped.
+
+If supplying `InstanceRoleARN`, grant `autoscaling:CompleteLifecycleAction` for the stack's Auto Scaling group, in addition to the existing instance-role permissions. The stack-created role includes this permission.
+
 ## Scheduled Scaling
 
 The Elastic CI Stack supports time-based scaling to automatically adjust the minimum number of instances based on your team's working hours. This feature helps optimize costs by scaling down during off-hours while allowing users the ability to proactively scale up capacity ahead of expected increasing capacity requirements.
@@ -171,6 +192,13 @@ AWS_PROFILE="some-profile" make create-stack
 aws-vault exec some-profile -- make create-stack
 ```
 
+To deploy a published template without building a local template, set `TEMPLATE_URL` with either `create-stack` or `update-stack`. Both targets still read stack parameters from `config.json`. Quote the URL, especially when using a signed URL with `&` query separators:
+
+```bash
+make update-stack STACK_NAME=my-stack \
+  TEMPLATE_URL='https://s3.amazonaws.com/buildkite-aws-stack/main/aws-stack.yml'
+```
+
 If you need to build your own AMIs (because you've changed something in the
 `packer` directory), run `make packer` with AWS credentials in your shell environment.
 
@@ -226,11 +254,59 @@ make packer-base-ubuntu2404-amd64.output packer-ubuntu2404-amd64.output
 make packer-base-ubuntu2404-arm64.output packer-ubuntu2404-arm64.output
 ```
 
+To test a Linux instance type with local NVMe instance storage, such as `c8id.xlarge`, set both `InstanceTypes` and `EnableInstanceStorage` in `config.json`:
+
+```json
+[
+  {
+    "ParameterKey": "BuildkiteAgentToken",
+    "ParameterValue": "<insert-your-token>"
+  },
+  {
+    "ParameterKey": "InstanceTypes",
+    "ParameterValue": "c8id.xlarge"
+  },
+  {
+    "ParameterKey": "EnableInstanceStorage",
+    "ParameterValue": "true"
+  }
+]
+```
+
+When enabled on Linux, available NVMe instance storage is mounted at `/mnt/ephemeral`, and the Buildkite builds path is bind-mounted from `/mnt/ephemeral/builds` to `/var/lib/buildkite-agent/builds`. When git-mirrors are also enabled, the git-mirrors path is bind-mounted from `/mnt/ephemeral/git-mirrors` to `/var/lib/buildkite-agent/git-mirrors`.
+
 **Security Note:** Making AMIs public (`AMI_PUBLIC=true`) can expose any secrets accidentally baked into the image. The default private setting helps prevent accidental exposure of sensitive information.
+
+### Windows image build access
+
+To attach an existing instance profile to the temporary Windows build instances, export
+`PKR_VAR_iam_instance_profile` before running the Windows Makefile targets:
+
+```bash
+export PKR_VAR_iam_instance_profile=your-ssm-instance-profile
+make packer-base-windows-amd64.output packer-windows-amd64.output
+```
+
+For Session Manager access, the profile's role must trust EC2 and grant SSM permissions
+(for example, using `AmazonSSMManagedInstanceCore`). The Packer caller needs
+`iam:GetInstanceProfile` on the profile and `iam:PassRole` on its role. The instance
+also needs a running SSM Agent and network access to the SSM endpoints. Packer still
+uses WinRM; the profile is not part of the resulting AMI.
+
+The profile is optional for local builds. Windows CI builds use `packer-ssm`, which
+must exist in the build account before the builds run.
+
+### Release builds
+
+Branch and PR builds use `if_changed` to select affected AMI builds and tests.
+Pushing a release tag builds and tests all final AMIs and publishes the
+CloudFormation template. Unchanged base AMIs reuse the cached builds from `main`.
 
 ## Support Policy
 
-We provide support for security and bug fixes on the current major release only.
+We provide support for security and bug fixes on the current major release (v7) only.
+Security fixes will also be backported to v6. New features and non-security bug
+fixes will not be backported to v6.
 
 If there are any changes in the main branch since the last tagged release, we
 aim to publish a new tagged release of this template at the end of each month.
@@ -262,7 +338,7 @@ tracks the latest Buildkite Agent release.
 
 You may wish to preview any updates to your stack from this template
 [using a CloudFormation Stack Change Set](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-changesets.html)
-to decide whether to apply it.
+to decide whether to apply it. See the [Elastic CI Stack v7 upgrade guide](docs/upgrading-to-v7.md) before upgrading from stack v6.
 
 ## Recommended reading
 
@@ -287,6 +363,10 @@ aws cloudformation describe-stacks --stack-name MY_STACK_NAME \
 ### Collect logs from CloudWatch
 
 It's currently not possible to disable logging to Cloudwatch from EC2 instances, so we removed the agent setup on our fork to avoid this.
+
+Windows also collects EC2Launch v2 activity in `/buildkite/EC2Launch`, user data output in `/buildkite/EC2Launch/UserdataExecution`, user data errors in `/buildkite/EC2Launch/UserdataExecution/error`, and CloudWatch agent diagnostics in `/buildkite/cloudwatch-agent`. Each uses the instance ID as the log stream name. The bootstrap log in `/buildkite/elastic-stack` includes standard output, errors, and diagnostic streams, encoded as UTF-8.
+
+Windows user data attempts to start CloudWatch logging before bootstrap. On a bootstrap failure, it allows ten seconds for log collection before attempting to abandon the launch. Delivery is best-effort: an unavailable CloudWatch endpoint, a launch timeout, or abrupt instance termination can still prevent logs from uploading. User data output and error collectors follow the newest matching EC2Launch temporary files; generated user data scripts are not collected because they can contain credentials.
 
 ### Collect logs via script
 

@@ -68,33 +68,27 @@ fetch_metadata_with_retry() {
 
   echo "Fetching EC2 metadata with retry (max attempts: $max_attempts)..."
 
-  # Temporarily disable exit on error for retry logic
-  set +e
-
+  # NOTE: the curl calls must be guarded by `if` conditions rather than relying
+  # on `set +e`. With `set -E` (errtrace), the ERR trap still fires for a failed
+  # assignment using command substitution even when errexit is disabled, which
+  # would run on_error and exit the script on the first failed attempt instead
+  # of retrying.
   while [[ $attempt -le $max_attempts ]]; do
     echo "Attempt $attempt of $max_attempts to fetch metadata..."
 
     # Try to get the token
     local token
-    token=$(curl -X PUT -H "X-aws-ec2-metadata-token-ttl-seconds: 60" \
+    if token=$(curl -X PUT -H "X-aws-ec2-metadata-token-ttl-seconds: 60" \
       --max-time "$timeout" \
       --fail --silent --show-error \
-      --location http://169.254.169.254/latest/api/token 2>&1)
-    local token_result=$?
-
-    if [[ $token_result -eq 0 ]]; then
+      --location http://169.254.169.254/latest/api/token 2>&1); then
       # Try to get the instance ID
-      INSTANCE_ID=$(curl -H "X-aws-ec2-metadata-token: $token" \
+      if INSTANCE_ID=$(curl -H "X-aws-ec2-metadata-token: $token" \
         --max-time "$timeout" \
         --fail --silent --show-error \
-        --location http://169.254.169.254/latest/meta-data/instance-id 2>&1)
-      local instance_id_result=$?
-
-      if [[ $instance_id_result -eq 0 ]]; then
+        --location http://169.254.169.254/latest/meta-data/instance-id 2>&1); then
         echo "Successfully fetched metadata on attempt $attempt"
         echo "Detected INSTANCE_ID=$INSTANCE_ID"
-        # Re-enable exit on error
-        set -e
         return 0
       else
         echo "Failed to fetch instance ID: $INSTANCE_ID"
@@ -115,9 +109,6 @@ fetch_metadata_with_retry() {
 
     attempt=$((attempt + 1))
   done
-
-  # Re-enable exit on error before returning failure
-  set -e
 
   echo "ERROR: Failed to fetch EC2 metadata after $max_attempts attempts"
   echo "This likely indicates the EC2 metadata service is unavailable or this instance has connectivity issues"
@@ -252,15 +243,8 @@ edge)
   chmod 0755 /usr/bin/buildkite-agent-edge
   buildkite-agent-edge --version
   ;;
-oldstable)
-  echo Downloading buildkite-agent oldstable...
-  curl -Lsf -o /usr/bin/buildkite-agent-oldstable \
-    "https://download.buildkite.com/agent/oldstable/latest/buildkite-agent-linux-${ARCH}"
-  chmod 0755 /usr/bin/buildkite-agent-oldstable
-  buildkite-agent-oldstable --version
-  ;;
 *)
-  echo Not using buildkite-agent edge or oldstable.
+  echo Not using buildkite-agent edge.
   ;;
 esac
 
@@ -304,14 +288,22 @@ if [[ "${BUILDKITE_AGENT_ENABLE_GIT_MIRRORS:-false}" == "true" ]]; then
     echo Mounting git-mirrors to instance storage...
 
     EPHEMERAL_GIT_MIRRORS_PATH="/mnt/ephemeral/git-mirrors"
-    echo "Creating ephemeral git-mirrors direcotry at $EPHEMERAL_GIT_MIRRORS_PATH"
+    echo "Creating ephemeral git-mirrors directory at $EPHEMERAL_GIT_MIRRORS_PATH"
     mkdir -p "${EPHEMERAL_GIT_MIRRORS_PATH}"
 
-    echo Bind mounting ephemeral git-mirror directory to git-mirrors path...
-    mount -o bind "${EPHEMERAL_GIT_MIRRORS_PATH}" "${BUILDKITE_AGENT_GIT_MIRRORS_PATH}"
+    if findmnt --mountpoint "${BUILDKITE_AGENT_GIT_MIRRORS_PATH}" >/dev/null; then
+      echo "$BUILDKITE_AGENT_GIT_MIRRORS_PATH is already mounted. Skipping bind mount."
+    else
+      echo Bind mounting ephemeral git-mirror directory to git-mirrors path...
+      mount -o bind "${EPHEMERAL_GIT_MIRRORS_PATH}" "${BUILDKITE_AGENT_GIT_MIRRORS_PATH}"
+    fi
 
-    echo Writing bind mount to fstab...
-    echo "${EPHEMERAL_GIT_MIRRORS_PATH} ${BUILDKITE_AGENT_GIT_MIRRORS_PATH} none defaults,bind 0 0" >>/etc/fstab
+    if grep -q -E "[[:space:]]${BUILDKITE_AGENT_GIT_MIRRORS_PATH}[[:space:]]" /etc/fstab; then
+      echo "$BUILDKITE_AGENT_GIT_MIRRORS_PATH already exists in /etc/fstab. Skipping fstab update."
+    else
+      echo Writing bind mount to fstab...
+      echo "${EPHEMERAL_GIT_MIRRORS_PATH} ${BUILDKITE_AGENT_GIT_MIRRORS_PATH} none defaults,bind 0 0" >>/etc/fstab
+    fi
 
     echo fstab is now:
     cat /etc/fstab
@@ -433,8 +425,17 @@ if [[ "${BUILDKITE_ENABLE_INSTANCE_STORAGE:-false}" == "true" ]]; then
   EPHEMERAL_BUILD_PATH="/mnt/ephemeral/builds"
   mkdir -p "${EPHEMERAL_BUILD_PATH}"
 
-  mount -o bind "${EPHEMERAL_BUILD_PATH}" "${BUILDKITE_AGENT_BUILD_PATH}"
-  echo "${EPHEMERAL_BUILD_PATH} ${BUILDKITE_AGENT_BUILD_PATH} none defaults,bind 0 0" >>/etc/fstab
+  if findmnt --mountpoint "${BUILDKITE_AGENT_BUILD_PATH}" >/dev/null; then
+    echo "$BUILDKITE_AGENT_BUILD_PATH is already mounted. Skipping bind mount."
+  else
+    mount -o bind "${EPHEMERAL_BUILD_PATH}" "${BUILDKITE_AGENT_BUILD_PATH}"
+  fi
+
+  if grep -q -E "[[:space:]]${BUILDKITE_AGENT_BUILD_PATH}[[:space:]]" /etc/fstab; then
+    echo "$BUILDKITE_AGENT_BUILD_PATH already exists in /etc/fstab. Skipping fstab update."
+  else
+    echo "${EPHEMERAL_BUILD_PATH} ${BUILDKITE_AGENT_BUILD_PATH} none defaults,bind 0 0" >>/etc/fstab
+  fi
 
   echo fstab is now:
   cat /etc/fstab
@@ -444,21 +445,6 @@ fi
 
 echo Setting ownership of build path to buildkite-agent.
 chown buildkite-agent: "$BUILDKITE_AGENT_BUILD_PATH"
-
-# Either you can have timestamp-lines xor ansi-timestamps.
-# There's no technical reason you can't have both, it's a pragmatic decision to
-# simplify the avaliable parameters on the stack
-if [[ ${BUILDKITE_AGENT_TIMESTAMP_LINES:-"false"} == "true" ]]; then
-  BUILDKITE_AGENT_TIMESTAMPS_LINES="true"
-  BUILDKITE_AGENT_NO_ANSI_TIMESTAMPS="true"
-else
-  BUILDKITE_AGENT_TIMESTAMPS_LINES="false"
-  BUILDKITE_AGENT_NO_ANSI_TIMESTAMPS="false"
-fi
-
-echo Setting \$BUILDKITE_AGENT_NO_ANSI_TIMESTAMPS to \$BUILDKITE_AGENT_TIMESTAMP_LINES
-echo "BUILDKITE_AGENT_TIMESTAMP_LINES is $BUILDKITE_AGENT_TIMESTAMPS_LINES"
-echo "BUILDKITE_AGENT_NO_ANSI_TIMESTAMPS is $BUILDKITE_AGENT_NO_ANSI_TIMESTAMPS"
 
 echo "Setting \$BUILDKITE_AGENT_TOKEN from SSM Parameter $BUILDKITE_AGENT_TOKEN_PATH"
 BUILDKITE_AGENT_TOKEN="$(
@@ -479,8 +465,6 @@ tags=$(
 )
 endpoint=${BUILDKITE_AGENT_ENDPOINT:-"https://agent-edge.buildkite.com/v3"}
 tags-from-ec2-meta-data=true
-no-ansi-timestamps=${BUILDKITE_AGENT_NO_ANSI_TIMESTAMPS}
-timestamp-lines=${BUILDKITE_AGENT_TIMESTAMP_LINES}
 hooks-path=/etc/buildkite-agent/hooks
 build-path=${BUILDKITE_AGENT_BUILD_PATH}
 plugins-path=/var/lib/buildkite-agent/plugins
@@ -492,9 +476,9 @@ no-color=true
 disconnect-after-idle-timeout=${BUILDKITE_SCALE_IN_IDLE_PERIOD}
 disconnect-after-job=${BUILDKITE_TERMINATE_INSTANCE_AFTER_JOB}
 disconnect-after-uptime=${BUILDKITE_AGENT_DISCONNECT_AFTER_UPTIME}
-tracing-backend=${BUILDKITE_AGENT_TRACING_BACKEND}
-cancel-grace-period=${BUILDKITE_AGENT_CANCEL_GRACE_PERIOD}
-signal-grace-period-seconds=${BUILDKITE_AGENT_SIGNAL_GRACE_PERIOD_SECONDS}
+opentelemetry-tracing=${BUILDKITE_AGENT_OPENTELEMETRY_TRACING:-false}
+cancel-signal-timeout=${BUILDKITE_AGENT_CANCEL_SIGNAL_TIMEOUT:-10s}
+cancel-cleanup-timeout=${BUILDKITE_AGENT_CANCEL_CLEANUP_TIMEOUT:-5s}
 signing-aws-kms-key=${BUILDKITE_AGENT_SIGNING_KMS_KEY}
 verification-failure-behavior=${BUILDKITE_AGENT_JOB_VERIFICATION_NO_SIGNATURE_BEHAVIOR}
 EOF

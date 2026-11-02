@@ -4,9 +4,9 @@ VERSION = $(shell git describe --tags --candidates=1)
 SHELL = /bin/bash -o pipefail
 
 PACKER_VERSION ?= 1.11.2
-PACKER_LINUX_BASE_FILES = $(shell find packer/linux/base packer/linux/shared)
+PACKER_LINUX_BASE_FILES = $(shell find packer/linux/base packer/linux/shared packer/trust)
 PACKER_LINUX_STACK_FILES = $(shell find packer/linux/stack packer/linux/shared)
-PACKER_WINDOWS_BASE_FILES = $(shell find packer/windows/base)
+PACKER_WINDOWS_BASE_FILES = $(shell find packer/windows/base packer/trust)
 PACKER_WINDOWS_STACK_FILES = $(shell find packer/windows/stack)
 
 # Allow passing an existing golden base AMI into packer via `BASE_AMI_ID` env var
@@ -35,7 +35,7 @@ AWS_REGION ?= us-east-1
 
 ARM64_INSTANCE_TYPE ?= m7g.xlarge
 AMD64_INSTANCE_TYPE ?= m7a.xlarge
-WIN64_INSTANCE_TYPE ?= m7i.xlarge
+WIN64_INSTANCE_TYPE ?= c8a.xlarge
 
 BUILDKITE_BUILD_NUMBER ?= none
 BUILDKITE_PIPELINE_DEFAULT_BRANCH ?= main
@@ -272,6 +272,7 @@ packer-windows-amd64.output: $(PACKER_WINDOWS_STACK_FILES) $(if $(strip $(BASE_A
 		-e AWS_SECRET_ACCESS_KEY \
 		-e AWS_SESSION_TOKEN \
 		-e PACKER_LOG \
+		-e PKR_VAR_iam_instance_profile \
 		-v ${HOME}/.aws:/root/.aws \
 		-v "$(PWD):/src" \
 		--rm \
@@ -428,6 +429,7 @@ packer-base-windows-amd64.output: $(PACKER_WINDOWS_BASE_FILES)
 		-e AWS_SECRET_ACCESS_KEY \
 		-e AWS_SESSION_TOKEN \
 		-e PACKER_LOG \
+		-e PKR_VAR_iam_instance_profile \
 		-v ${HOME}/.aws:/root/.aws \
 		-v "$(PWD):/src" \
 		--rm \
@@ -475,27 +477,32 @@ config.json:
 
 SERVICE_ROLE=
 ifdef SERVICE_ROLE
-	role_arn="--role-arn=$(SERVICE_ROLE)"
+	role_arn=--role-arn=$(SERVICE_ROLE)
 endif
 
-create-stack: build/aws-stack.yml env-STACK_NAME
+template_arg=--template-body "file://$(PWD)/build/aws-stack.yml"
+stack_deps=build/aws-stack.yml
+ifdef TEMPLATE_URL
+	template_arg=--template-url "$(TEMPLATE_URL)"
+	stack_deps=
+endif
+
+create-stack: $(stack_deps) env-STACK_NAME
 	aws cloudformation create-stack \
 		--output text \
 		--stack-name $(STACK_NAME) \
 		--disable-rollback \
-		--template-body "file://$(PWD)/build/aws-stack.yml" \
+		$(template_arg) \
 		--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
-		--parameters "$$(cat config.json)" \
-		"$(role_arn)"
+		--parameters "file://$(PWD)/config.json" $(role_arn)
 
-update-stack: build/aws-stack.yml env-STACK_NAME
+update-stack: $(stack_deps) env-STACK_NAME
 	aws cloudformation update-stack \
 		--output text \
 		--stack-name $(STACK_NAME) \
-		--template-body "file://$(PWD)/build/aws-stack.yml" \
+		$(template_arg) \
 		--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
-		--parameters "$$(cat config.json)" \
-		"$(role_arn)"
+		--parameters "file://$(PWD)/config.json" $(role_arn)
 
 # -----------------------------------------
 # Other
