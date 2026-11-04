@@ -119,15 +119,15 @@ build/aws-stack.yml:
 
 
 # Full images depend on base images when available
-packer: packer-base-linux-amd64.output packer-base-linux-arm64.output packer-base-ubuntu2404-amd64.output packer-base-ubuntu2404-arm64.output packer-base-windows-amd64.output packer-linux-amd64.output packer-linux-arm64.output packer-ubuntu2404-amd64.output packer-ubuntu2404-arm64.output packer-windows-amd64.output
+packer: packer-base-linux-amd64.output packer-base-linux-arm64.output packer-linux-amd64.output packer-linux-arm64.output
 
 packer-fmt:
 	docker run --rm -v "$(PWD):/src" -w /src "hashicorp/packer:full-$(PACKER_VERSION)" fmt -check -recursive packer/
 
-build/mappings.yml: build/linux-amd64-ami.txt build/linux-arm64-ami.txt build/windows-amd64-ami.txt build/ubuntu2404-amd64-ami.txt build/ubuntu2404-arm64-ami.txt
+build/mappings.yml: build/linux-amd64-ami.txt build/linux-arm64-ami.txt
 	mkdir -p build
-	printf "Mappings:\n  AWSRegion2AMI:\n    %q : { linuxamd64: %q, linuxarm64: %q, windows: %q, ubuntu2404amd64: %q, ubuntu2404arm64: %q }\n" \
-		"$(AWS_REGION)" $$(cat build/linux-amd64-ami.txt) $$(cat build/linux-arm64-ami.txt) $$(cat build/windows-amd64-ami.txt) $$(cat build/ubuntu2404-amd64-ami.txt) $$(cat build/ubuntu2404-arm64-ami.txt) > $@
+	printf "Mappings:\n  AWSRegion2AMI:\n    %q : { linuxamd64: %q, linuxarm64: %q, windows: '', ubuntu2404amd64: '', ubuntu2404arm64: '' }\n" \
+		"$(AWS_REGION)" $$(cat build/linux-amd64-ami.txt) $$(cat build/linux-arm64-ami.txt) > $@
 
 build/linux-amd64-ami.txt: packer-linux-amd64.output env-AWS_REGION
 	mkdir -p build
