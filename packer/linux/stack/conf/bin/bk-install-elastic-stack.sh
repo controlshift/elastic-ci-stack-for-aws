@@ -720,7 +720,7 @@ function docker_pull_with_retry() {
 }
 
 docker_pull_with_retry 'postgres:18.6'
-docker_pull_with_retry 'ruby:4.0.6-alpine3.24'
+docker_pull_with_retry 'ruby:4.0.7-alpine3.24'
 docker_pull_with_retry 'docker.elastic.co/elasticsearch/elasticsearch:8.19.13'
 docker_pull_with_retry 'redis:8'
 
